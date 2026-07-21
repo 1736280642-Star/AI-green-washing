@@ -1,0 +1,18 @@
+import type { Metadata } from "next";
+import "./globals.css";
+import { AppShell } from "@/components/app-shell";
+
+export const metadata: Metadata = {
+  title: "GreenLens | 绿色证据雷达",
+  description: "面向 ESG 研究与合规复核的合成数据前端演示。",
+};
+
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  return (
+    <html lang="zh-CN">
+      <body>
+        <AppShell>{children}</AppShell>
+      </body>
+    </html>
+  );
+}
