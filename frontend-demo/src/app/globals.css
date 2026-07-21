@@ -211,6 +211,14 @@ kbd { padding: 2px 6px; border: 1px solid var(--line-strong); border-radius: 3px
 .company-link:hover strong { color: var(--green); }
 .company-link small { color: var(--text-muted); }
 .data-table input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--green); }
+.column-settings { position: relative; }
+.column-menu { position: absolute; z-index: 35; top: 42px; right: 0; display: grid; width: 210px; gap: 7px; padding: 12px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--bg-raised); box-shadow: 0 18px 60px rgba(0,0,0,.42); }
+.column-menu > strong { margin-bottom: 3px; font-size: 12px; }
+.column-menu label { display: flex; min-height: 30px; align-items: center; gap: 8px; color: var(--text-secondary); cursor: pointer; }
+.column-menu input { accent-color: var(--green); }
+.table-pagination { display: flex; min-height: 52px; align-items: center; justify-content: space-between; padding: 8px 12px 8px 16px; border-top: 1px solid var(--line-soft); color: var(--text-secondary); font-size: 12px; }
+.table-pagination > div { display: flex; gap: 6px; }
+.table-pagination .icon-button:disabled { cursor: not-allowed; opacity: .38; }
 .compare-bar { position: fixed; z-index: 28; right: 28px; bottom: 42px; left: calc(var(--sidebar-width) + 28px); display: flex; min-height: 58px; align-items: center; justify-content: flex-end; gap: 10px; padding: 9px 12px 9px 18px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--bg-glass); box-shadow: 0 18px 60px rgba(0,0,0,.42); backdrop-filter: blur(18px); }
 .compare-bar > span { margin-right: auto; }
 .compare-bar strong { color: var(--green); font-family: "IBM Plex Mono", monospace; }

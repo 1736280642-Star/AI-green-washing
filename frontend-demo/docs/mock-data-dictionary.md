@@ -15,6 +15,8 @@ Every company, stock code, report excerpt, event, source, rating, and metric in 
 | `yuanfang-tech` | 远方科技 | 688903 | 电子制造 | 29 | 已复核 |
 | `jiuhe-build` | 九禾建设 | 601593 | 建筑 | 55 | 存在争议 |
 
+以上 6 条是跨页面主流程样本；企业库另包含 24 条固定生成的合成记录，总计 30 条，用于验证每页 10 条的分页、搜索、排序、列设置和批量对比。生成记录使用 `demo-company-*` ID 与 `D*****` 虚构代码，每次刷新保持一致。
+
 ## Contracts
 
 - `CompanyYearRecord`: one synthetic company and report year, with risk, coverage, review state, components, and versions.

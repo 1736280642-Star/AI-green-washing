@@ -63,6 +63,17 @@ test("compare view and review undo remain interactive", async ({ page }) => {
   await expect(page.getByText("已撤销复核结果", { exact: true })).toBeVisible();
 });
 
+test("company library paginates 30 records and applies column settings", async ({ page }) => {
+  await page.goto("/companies");
+  await expect(page.getByText("共 30 家 · 每页 10 条")).toBeVisible();
+  await expect(page.getByText("第 1 / 3 页")).toBeVisible();
+  await page.getByRole("button", { name: "下一页" }).click();
+  await expect(page.getByText("第 2 / 3 页")).toBeVisible();
+  await page.getByRole("button", { name: "列设置" }).click();
+  await page.getByRole("checkbox", { name: "行业" }).uncheck();
+  await expect(page.getByRole("columnheader", { name: "行业" })).toHaveCount(0);
+});
+
 for (const viewport of [
   { name: "desktop-1440", width: 1440, height: 900 },
   { name: "desktop-1280", width: 1280, height: 800 },

@@ -30,7 +30,7 @@ The Playwright suite covers the investigation workflow, report success/OCR/failu
 | Route | Purpose |
 | --- | --- |
 | `/dashboard` | Discover high-priority signals in the claim-by-fact matrix |
-| `/companies` | Search, sort, select, compare, and export synthetic companies |
+| `/companies` | Search, sort, paginate, configure columns, compare, and export 30 synthetic companies |
 | `/companies/cy-materials` | Inspect contributions, report evidence, external facts, ratings, and history |
 | `/compare` | Compare 2-5 companies without producing a simplistic ranking |
 | `/reports` | Run a local-only report scan state machine |

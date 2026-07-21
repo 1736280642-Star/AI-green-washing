@@ -21,7 +21,7 @@ function components(values: number[]): RiskComponent[] {
   }));
 }
 
-export const companies: CompanyYearRecord[] = [
+const baseCompanies: CompanyYearRecord[] = [
   ["cy-materials", "澄岳新材", "688217", "新材料", 78, 88, 84, 64, "insufficient", "partial", 5, [62, 88, 81, 69, 58, 77]],
   ["linhai-energy", "林海能源", "600741", "综合能源", 72, 82, 79, 71, "pending", "pending", 6, [58, 77, 71, 62, 55, 80]],
   ["qiming-mobility", "启明交通", "301482", "交通设备", 61, 74, 72, 83, "verified", "reviewed", 3, [51, 58, 64, 53, 44, 66]],
@@ -47,6 +47,50 @@ export const companies: CompanyYearRecord[] = [
   components: components(values as number[]),
   versions: { data: "SYN-2026.07", model: "GL-RISK-1.3" },
 }));
+
+const syntheticNames = [
+  "云岚复材", "星泊化工", "青屿装备", "沐川纺织", "禾望包装", "清原电气",
+  "岚桥物流", "泽衡科技", "森屿建材", "澜序制造", "景辰玻璃", "汇青机械",
+  "川岳纸业", "启川电机", "新澈涂料", "岭南器材", "远泽包装", "松原设备",
+  "潮汐材料", "衡川精工", "青砾科技", "云港运输", "明川制品", "清域工程",
+];
+const industries = ["新材料", "综合能源", "交通设备", "消费品", "电子制造", "建筑"];
+
+const generatedCompanies: CompanyYearRecord[] = syntheticNames.map((companyName, index) => {
+  const claimPercentile = 36 + (index * 11) % 61;
+  const factPercentile = 33 + (index * 13) % 64;
+  const riskScore = Math.round((claimPercentile * 0.46 + factPercentile * 0.54) * 0.9);
+  const evidenceStatus: CompanyYearRecord["evidenceStatus"] = ["pending", "insufficient", "verified", "disputed"][index % 4] as CompanyYearRecord["evidenceStatus"];
+  const reviewStatus: CompanyYearRecord["reviewStatus"] = ["pending", "pending", "reviewed", "disputed"][index % 4] as CompanyYearRecord["reviewStatus"];
+  return {
+    id: `demo-company-${String(index + 1).padStart(2, "0")}-2025`,
+    companyId: `demo-company-${String(index + 1).padStart(2, "0")}`,
+    companyName,
+    stockCode: `D${String(index + 101).padStart(5, "0")}`,
+    industry: industries[index % industries.length],
+    reportYear: 2025,
+    publishDate: `2026-0${(index % 3) + 2}-${String(8 + index % 20).padStart(2, "0")}`,
+    riskScore,
+    riskBand: riskScore >= 70 ? "high" : riskScore >= 45 ? "medium" : "low",
+    claimPercentile,
+    factPercentile,
+    evidenceCoverage: 48 + (index * 9) % 49,
+    evidenceStatus,
+    reviewStatus,
+    eventCount: 1 + index % 7,
+    components: components([
+      28 + (index * 7) % 63,
+      34 + (index * 9) % 59,
+      31 + (index * 11) % 61,
+      26 + (index * 13) % 65,
+      29 + (index * 5) % 58,
+      33 + (index * 8) % 62,
+    ]),
+    versions: { data: "SYN-2026.07", model: "GL-RISK-1.3" },
+  };
+});
+
+export const companies: CompanyYearRecord[] = [...baseCompanies, ...generatedCompanies];
 
 export const evidence: EvidenceItem[] = [
   {
