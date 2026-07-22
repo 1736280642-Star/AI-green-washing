@@ -1,12 +1,27 @@
 "use client";
 
-import { ArrowDown, ArrowUp, Download, ExternalLink, FileWarning, RefreshCw, SearchCheck, ShieldCheck, Users } from "lucide-react";
+import { ArrowDown, ArrowUp, Bot, ChevronRight, Download, ExternalLink, FileWarning, RefreshCw, SearchCheck, ShieldCheck, Users } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { ClaimFactMatrix } from "@/components/charts/claim-fact-matrix";
 import { demoRepository, type DemoScenario } from "@/repositories/demo-repository";
 import { useDemoStore } from "@/stores/demo-store";
 import type { CompanyYearRecord } from "@/types";
+
+const DashboardTelemetry = dynamic(
+  () => import("@/components/charts/dashboard-telemetry").then((module) => module.DashboardTelemetry),
+  { ssr: false, loading: () => <TelemetryLoading /> },
+);
+
+const recommendations: Record<string, string> = {
+  VAGUE: "核对声明中的量化指标与适用边界",
+  UNVERIFIED_TARGET: "核验基准年、阶段目标与鉴证范围",
+  QUANT_GAP: "补充关键环境指标及可比年度数据",
+  DECOUPLING: "对齐承诺、投入与实际行动记录",
+  SELECTIVE: "检查披露范围是否排除高影响业务",
+  EXTERNAL_FACT: "确认事件主体、时点与报告边界",
+};
 
 export default function DashboardPage() {
   return <Suspense fallback={<DashboardLoading />}><DashboardContent /></Suspense>;
@@ -57,8 +72,9 @@ function DashboardContent() {
         <button className="metric-item metric-button" onClick={() => location.assign("/review")}><span className="metric-label"><span>待复核</span><SearchCheck size={14} /></span><div className="metric-value">{pendingReviews}<small>进入队列</small></div></button>
       </section>
       <div className="dashboard-grid">
+        <DashboardTelemetry companies={filtered} />
         <section className="panel chart-panel"><header className="panel-header"><div><h3>声明 × 事实证据场</h3><p>样本 {filtered.length} · 报告年 2025 · 点击固定，双击打开分析</p></div><span className="chart-legend"><i className="pending" />待复核 <i className="verified" />已复核 <i className="insufficient" />证据不足</span></header><ClaimFactMatrix companies={filtered} /></section>
-        <section className="panel"><header className="panel-header"><div><h3>{selected ? `${selected.companyName} · 风险结构` : "风险结构"}</h3><p>贡献与行业中位分开显示</p></div>{selected && <span className={`status-chip ${selected.riskBand}`}>风险 {selected.riskScore}</span>}</header><div className="panel-body">{selected && <><div className="contribution-list">{selected.components.map((component) => <button key={component.code} className="contribution-row contribution-button" onClick={() => { useDemoStore.getState().selectEvidence(component.evidenceIds[0]); openDrawer("ai"); }}><span className="contribution-meta"><span>{component.label}</span><span>{component.value} / 贡献 {component.contribution}</span></span><span className="bar-track"><span className="bar-fill" style={{ width: `${component.value}%` }} /><span className="bar-benchmark" style={{ left: `${component.industryMedian}%` }} /></span></button>)}</div><div className="quality-summary"><span className="section-kicker">证据质量（不计入风险）</span><Quality label="报告" value={selected.evidenceCoverage} /><Quality label="外部事件" value={Math.max(45, selected.evidenceCoverage - 7)} /><Quality label="评级" value={Math.min(96, selected.evidenceCoverage + 13)} /></div></>}</div></section>
+        <section className="panel dashboard-analysis-panel"><header className="panel-header"><div><h3>{selected ? `${selected.companyName} · 风险结构` : "风险结构"}</h3><p>贡献与行业中位分开显示</p></div>{selected && <span className={`status-chip ${selected.riskBand}`}>风险 {selected.riskScore}</span>}</header><div className="panel-body">{selected && <><div className="contribution-list">{selected.components.map((component) => <button key={component.code} className="contribution-row contribution-button" onClick={() => { useDemoStore.getState().selectEvidence(component.evidenceIds[0]); openDrawer("ai"); }}><span className="contribution-meta"><span>{component.label}</span><span>{component.value} / 贡献 {component.contribution}</span></span><span className="bar-track"><span className="bar-fill" style={{ width: `${component.value}%` }} /><span className="bar-benchmark" style={{ left: `${component.industryMedian}%` }} /></span></button>)}</div><div className="quality-summary"><span className="section-kicker">证据质量（不计入风险）</span><Quality label="报告" value={selected.evidenceCoverage} /><Quality label="外部事件" value={Math.max(45, selected.evidenceCoverage - 7)} /><Quality label="评级" value={Math.min(96, selected.evidenceCoverage + 13)} /></div><SignalBrief company={selected} onAI={() => { const first = [...selected.components].sort((a, b) => b.value - a.value)[0]; useDemoStore.getState().selectEvidence(first.evidenceIds[0]); openDrawer("ai"); }} /></>}</div></section>
       </div>
       <section className="panel queue-panel"><header className="panel-header"><div><h3>优先复核队列</h3><p>当前矩阵选择与队列同步</p></div><button className="quiet-button" onClick={() => setAscending(!ascending)}>风险分 {ascending ? <ArrowUp size={14} /> : <ArrowDown size={14} />}</button></header><div className="data-table-wrap"><table className="data-table"><thead><tr><th>公司</th><th>行业</th><th>年度</th><th className="numeric">风险分</th><th className="numeric">声明分位</th><th className="numeric">事实分位</th><th>证据状态</th><th className="numeric">待复核项</th><th>操作</th></tr></thead><tbody>{rows.map((company) => <tr key={company.companyId} className={company.companyId === selectedCompanyId ? "selected" : ""} onClick={() => selectCompany(company.companyId)}><td><strong>{company.companyName}</strong><br/><small>{company.stockCode}</small></td><td>{company.industry}</td><td>2025</td><td className="numeric">{company.riskScore}</td><td className="numeric">{company.claimPercentile}</td><td className="numeric">{company.factPercentile}</td><td><span className={`status-chip ${company.evidenceStatus}`}>{evidenceLabel(company.evidenceStatus)}</span></td><td className="numeric">{Math.max(1, Math.round(company.eventCount / 2))}</td><td><button className="table-action" onClick={(event) => { event.stopPropagation(); location.assign(`/companies/${company.companyId}?year=2025`); }}>打开分析 <ExternalLink size={13} /></button></td></tr>)}</tbody></table></div></section>
     </div>
@@ -67,6 +83,11 @@ function DashboardContent() {
 
 function Metric({ icon, label, value, note, delta }: { icon: React.ReactNode; label: string; value: string; note: string; delta?: string }) { return <div className="metric-item"><span className="metric-label"><span>{label}</span>{delta ? <span className="metric-delta">{delta}</span> : icon}</span><div className="metric-value">{value}<small>{note}</small></div></div>; }
 function Quality({ label, value }: { label: string; value: number }) { return <div className="quality-row"><span>{label}</span><span className="bar-track"><span className="bar-fill" style={{ width: `${value}%` }} /></span><code>{value}%</code></div>; }
+function SignalBrief({ company, onAI }: { company: CompanyYearRecord; onAI: () => void }) {
+  const claims = [...company.components].sort((a, b) => b.value - a.value).slice(0, 2);
+  return <section className="signal-brief"><div className="signal-brief-heading"><span><Bot size={13}/>AI 线索摘要</span><code>{claims.length} 条主线索</code></div><p>{company.companyName}当前由<strong>{claims.map((claim) => claim.label).join("、")}</strong>驱动，证据覆盖 {company.evidenceCoverage}%，仍需人工复核。</p><ul>{claims.map((claim) => <li key={claim.code}><span>{claim.label}<code>{claim.value}</code></span><small>{recommendations[claim.code]}</small></li>)}</ul><button className="text-button" onClick={onAI}>查看引用解释 <ChevronRight size={13}/></button></section>;
+}
 function evidenceLabel(status: CompanyYearRecord["evidenceStatus"]) { return { verified: "已验证", pending: "待复核", insufficient: "证据不足", disputed: "存在争议" }[status]; }
 function DashboardLoading() { return <div className="page"><div className="skeleton skeleton-header" /><div className="metric-strip">{[1,2,3,4].map((i) => <div className="metric-item" key={i}><span className="skeleton skeleton-line" /><span className="skeleton skeleton-value" /></div>)}</div><div className="dashboard-grid"><div className="panel skeleton-panel"/><div className="panel skeleton-panel"/></div></div>; }
+function TelemetryLoading() { return <div className="panel dashboard-telemetry telemetry-loading" aria-label="正在加载样本遥测"><span className="skeleton skeleton-line"/><span className="skeleton skeleton-panel"/></div>; }
 function StatePanel({ title, detail, action, onAction }: { title: string; detail: string; action: string; onAction: () => void }) { return <div className="state-panel"><RefreshCw size={24}/><h2>{title}</h2><p>{detail}</p><button className="primary-button" onClick={onAction}>{action}</button></div>; }

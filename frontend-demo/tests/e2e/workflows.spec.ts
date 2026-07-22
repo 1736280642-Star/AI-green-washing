@@ -9,10 +9,17 @@ function monitorConsole(page: Page) {
 test("workflow A: dashboard to cited evidence and review", async ({ page }) => {
   const errors = monitorConsole(page);
   await page.goto("/dashboard");
-  await expect(page.getByRole("heading", { name: "风险总览" })).toBeVisible();
-  const canvas = page.locator("canvas").first();
-  await expect(canvas).toBeVisible();
-  expect(await canvas.evaluate((node) => (node as HTMLCanvasElement).toDataURL().length)).toBeGreaterThan(1000);
+  await expect(page.getByRole("heading", { name: "风险总览", level: 2 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "样本遥测" })).toBeVisible();
+  const canvases = page.locator("canvas");
+  await expect(canvases).toHaveCount(3);
+  for (const canvas of await canvases.all()) {
+    await expect(canvas).toBeVisible();
+    expect(await canvas.evaluate((node) => (node as HTMLCanvasElement).toDataURL().length)).toBeGreaterThan(1000);
+  }
+  await page.getByRole("button", { name: /高风险/ }).click();
+  await expect(page.locator(".context-bar select").nth(2)).toHaveValue("高风险");
+  await page.getByRole("button", { name: "清除筛选" }).click();
   await page.getByRole("button", { name: /打开分析/ }).first().click();
   await expect(page.getByRole("heading", { name: "澄岳新材" })).toBeVisible();
   await page.getByRole("button", { name: /主要原因/ }).click();
@@ -83,7 +90,7 @@ for (const viewport of [
   test(`visual smoke: ${viewport.name}`, async ({ page }) => {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     await page.goto("/dashboard");
-    await expect(page.getByRole("heading", { name: "风险总览" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "风险总览", level: 2 })).toBeVisible();
     await expect(page.locator("canvas").first()).toBeVisible();
     await page.waitForFunction(() => {
       const canvas = document.querySelector("canvas");
