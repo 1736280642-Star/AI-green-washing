@@ -63,8 +63,8 @@ export function ClaimFactMatrix({ companies }: { companies: CompanyYearRecord[] 
   }, [companies, data, router, selectCompany]);
 
   function moveSelection(direction: number) {
-    const current = Math.max(0, companies.findIndex((company) => company.companyId === selectedCompanyId));
-    const next = (current + direction + companies.length) % companies.length;
+    const current = companies.findIndex((company) => company.companyId === selectedCompanyId);
+    const next = current < 0 ? 0 : (current + direction + companies.length) % companies.length;
     selectCompany(companies[next].companyId);
   }
 

@@ -57,3 +57,52 @@ export interface ReviewRecord {
   note?: string;
   reviewedAt?: string;
 }
+
+export interface DashboardReviewTask {
+  id: string;
+  companyId: string;
+  type: RiskComponent["code"];
+  reason: string;
+  impact: number;
+  ageHours: number;
+  uncertainty: number;
+  evidenceStatus: EvidenceStatus;
+  claimPercentile: number;
+  factPercentile: number;
+  evidenceId: string;
+}
+
+export interface ReviewTrendPoint {
+  date: string;
+  created: number;
+  completed: number;
+  pending: number;
+}
+
+export interface ModelAgreementRecord {
+  type: string;
+  confirm: number;
+  partial: number;
+  reject: number;
+  insufficient: number;
+}
+
+export interface SourceFreshnessRecord {
+  source: string;
+  coverage: number;
+  daysOld: number;
+  status: "fresh" | "watch" | "stale";
+}
+
+export interface EvidenceCoverageDimension {
+  label: string;
+  coverage: number;
+}
+
+export interface DashboardInsights {
+  reviewTasks: DashboardReviewTask[];
+  reviewTrend: ReviewTrendPoint[];
+  modelAgreement: ModelAgreementRecord[];
+  sourceFreshness: SourceFreshnessRecord[];
+  evidenceCoverage: EvidenceCoverageDimension[];
+}

@@ -18,4 +18,13 @@ describe("demoRepository", () => {
     expect(items.length).toBeGreaterThanOrEqual(3);
     expect(items.every((item) => item.companyId === "cy-materials")).toBe(true);
   });
+
+  it("returns stable dashboard operations and governance insights", async () => {
+    const insights = await demoRepository.getDashboardInsights();
+    expect(insights.reviewTasks).toHaveLength(8);
+    expect(insights.reviewTasks[0]).toMatchObject({ id: "rv-1048", companyId: "cy-materials" });
+    expect(insights.reviewTrend.at(-1)).toMatchObject({ date: "07-27", pending: 28 });
+    expect(insights.modelAgreement).toHaveLength(6);
+    expect(insights.sourceFreshness.some((source) => source.status === "stale")).toBe(true);
+  });
 });

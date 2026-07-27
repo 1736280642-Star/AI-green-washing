@@ -118,7 +118,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <div className="context-bar" aria-label="全局筛选">
           <label><span>报告年</span><select value={year} onChange={(event) => setFilters({ year: Number(event.target.value) })}><option>2025</option><option>2024</option><option>2023</option></select></label>
-          <label><span>行业</span><select value={industry} onChange={(event) => setFilters({ industry: event.target.value })}><option>全部行业</option><option>新材料</option><option>综合能源</option><option>交通设备</option></select></label>
+          <label><span>行业</span><select value={industry} onChange={(event) => setFilters({ industry: event.target.value })}><option>全部行业</option><option>新材料</option><option>综合能源</option><option>交通设备</option><option>消费品</option><option>电子制造</option><option>建筑</option></select></label>
           <label><span>风险</span><select value={risk} onChange={(event) => setFilters({ risk: event.target.value })}><option>全部风险</option><option>高风险</option><option>中风险</option><option>低风险</option></select></label>
           {(industry !== "全部行业" || risk !== "全部风险" || year !== 2025) && <button className="text-button" onClick={() => setFilters({ year: 2025, industry: "全部行业", risk: "全部风险" })}>清除筛选</button>}
           <span className="context-count">合成样本 · 口径截至 {year}</span>

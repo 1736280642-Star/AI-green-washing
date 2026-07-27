@@ -1,5 +1,6 @@
 import { companies, evidence } from "@/mocks/fixtures/companies";
-import type { CompanyYearRecord, EvidenceItem } from "@/types";
+import { dashboardInsights } from "@/mocks/fixtures/dashboard";
+import type { CompanyYearRecord, DashboardInsights, EvidenceItem } from "@/types";
 
 export type DemoScenario = "success" | "empty" | "error" | "slow";
 
@@ -20,5 +21,15 @@ export const demoRepository = {
   async listEvidence(companyId: string, scenario: DemoScenario = "success"): Promise<EvidenceItem[]> {
     await wait(scenario);
     return scenario === "empty" ? [] : structuredClone(evidence.filter((item) => item.companyId === companyId));
+  },
+  async getDashboardInsights(scenario: DemoScenario = "success"): Promise<DashboardInsights> {
+    await wait(scenario);
+    return structuredClone(scenario === "empty" ? {
+      reviewTasks: [],
+      reviewTrend: [],
+      modelAgreement: [],
+      sourceFreshness: [],
+      evidenceCoverage: [],
+    } : dashboardInsights);
   },
 };
