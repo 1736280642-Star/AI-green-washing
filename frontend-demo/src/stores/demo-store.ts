@@ -18,6 +18,7 @@ interface DemoState {
   industry: string;
   risk: string;
   selectedCompanyId: string | null;
+  selectedReportYear: number | null;
   selectedEvidenceId: string | null;
   compareIds: string[];
   pendingReviews: number;
@@ -26,7 +27,7 @@ interface DemoState {
   drawer: Drawer;
   toast: string | null;
   setFilters: (filters: Partial<Pick<DemoState, "year" | "industry" | "risk">>) => void;
-  selectCompany: (id: string | null) => void;
+  selectCompany: (id: string | null, reportYear?: number | null) => void;
   selectEvidence: (id: string | null) => void;
   toggleCompare: (id: string) => boolean;
   clearCompare: () => void;
@@ -43,6 +44,7 @@ const defaults = {
   industry: "全部行业",
   risk: "全部风险",
   selectedCompanyId: null,
+  selectedReportYear: null,
   selectedEvidenceId: null,
   compareIds: ["cy-materials", "linhai-energy"],
   pendingReviews: 28,
@@ -59,7 +61,7 @@ export const useDemoStore = create<DemoState>()(
     (set, get) => ({
       ...defaults,
       setFilters: (filters) => set(filters),
-      selectCompany: (id) => set({ selectedCompanyId: id }),
+      selectCompany: (id, reportYear = null) => set({ selectedCompanyId: id, selectedReportYear: id ? reportYear : null }),
       selectEvidence: (id) => set({ selectedEvidenceId: id }),
       toggleCompare: (id) => {
         const ids = get().compareIds;

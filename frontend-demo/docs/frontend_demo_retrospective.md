@@ -2,14 +2,16 @@
 
 ## Conclusion
 
-The most effective interaction is the continuous evidence path: matrix selection changes risk contributions and the queue, the company contribution locates a report phrase, AI citations return to that phrase, and a human review updates shared state. This makes the product's value understandable without relying on a single score.
+The most effective interaction is the continuous evidence path: quadrant selection changes the metric ledger and queue, the ledger locates a report phrase, AI citations return to that phrase, and a human review updates shared state. This makes the product's value understandable without relying on a single score.
 
 ## What improved understanding
 
-- The claim-by-fact matrix answers who deserves attention and why.
+- The EASS-by-E-AA-ESGSI quadrant answers who deserves attention and whether weak action substance aligns with a high final index.
+- The dense Dashboard keeps KPI, action composition, formula breakdown, industry heatmap, and review operations within a compact scan path.
 - Separate risk, evidence coverage, and review objects prevent low coverage from reading as low risk.
 - Precise underlines preserve report readability better than full-paragraph highlighting.
 - Cause-impact-next-action errors make report failure paths demonstrable rather than dead ends.
+- Mobile deliberately keeps KPIs, telemetry, the main quadrant, formula ledger, diagnostics, and Top 3 review tasks while omitting queue throughput and governance charts that require desktop comparison space.
 
 ## What increased cognitive cost
 
@@ -19,10 +21,13 @@ The most effective interaction is the continuous evidence path: matrix selection
 
 ## Real API migration
 
-- Replace `demoRepository` methods with HTTP adapters while keeping `CompanyYearRecord`, `EvidenceItem`, and `ReviewRecord` stable.
+- Set `NEXT_PUBLIC_ANALYSIS_REPOSITORY=http` at the single Repository composition root while keeping `CompanyYearRecord`, `EvidenceItem`, and `ReviewRecord` stable.
+- Keep runtime Zod validation at both Mock and HTTP boundaries so schema drift, duplicate metrics, invalid zero-denominator values, and incoherent unavailable states fail before rendering.
 - Move query scenario behavior to test adapters, not production requests.
-- Replace local review persistence with an optimistic mutation and server reconciliation.
+- Keep `saveReview` as the required write boundary; the current UI updates its local cache only after the Repository returns successfully. A production implementation may add optimistic updates with server reconciliation.
 - Preserve URL state for year, tab, company, and evidence to retain shareable investigations.
+
+The audit found that an interface alone was insufficient while pages still imported `demoRepository` directly, report results were hard-coded, global selection omitted `reportYear`, and Dashboard queue parameters were ignored by `/review`. All routes now consume `analysisRepository`; company, evidence, report, and review flows preserve company-year context; report progress is polled through `getAnalysisJob`; and review writes use `saveReview`. HTTP mode no longer requires route-by-route rewrites.
 
 ## Black glass tradeoffs
 
@@ -32,4 +37,4 @@ The most effective interaction is the continuous evidence path: matrix selection
 
 ## Reusable assets
 
-The repeated acceptance workflow has been automated in `tests/e2e/workflows.spec.ts`. Repository scenario handling, evidence status components, contribution bars, responsive app shell, and accessibility checks are reusable foundations for later API-backed iterations.
+The repeated acceptance workflow is automated in `tests/e2e/workflows.spec.ts`. Repository scenario handling, metric-contract validation, zero-denominator guards, evidence states, responsive audit layouts, and accessibility checks are reusable foundations for later API-backed iterations.

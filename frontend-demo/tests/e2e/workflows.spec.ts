@@ -6,6 +6,20 @@ function monitorConsole(page: Page) {
   return errors;
 }
 
+async function expectCanvasPainted(canvas: ReturnType<Page["locator"]>) {
+  await expect(canvas).toBeVisible();
+  const paintedPixels = await canvas.evaluate((node) => {
+    const element = node as HTMLCanvasElement;
+    const context = element.getContext("2d");
+    if (!context) return 0;
+    const pixels = context.getImageData(0, 0, element.width, element.height).data;
+    let count = 0;
+    for (let index = 3; index < pixels.length; index += 4) if (pixels[index] > 0) count += 1;
+    return count;
+  });
+  expect(paintedPixels).toBeGreaterThan(20);
+}
+
 test("workflow A: dashboard to cited evidence and review", async ({ page }) => {
   const errors = monitorConsole(page);
   await page.goto("/dashboard");
@@ -32,37 +46,42 @@ test("workflow A: dashboard to cited evidence and review", async ({ page }) => {
 test("dashboard risk insights drive the Top 5 review flow", async ({ page }) => {
   const errors = monitorConsole(page);
   await page.goto("/dashboard");
-  await page.getByRole("heading", { name: "风险从哪里聚集" }).scrollIntoViewIfNeeded();
-  await expect(page.getByRole("heading", { name: "问题类型 Pareto" })).toBeVisible();
-  const evidenceGapTab = page.getByRole("tab", { name: "证据缺口" });
-  await evidenceGapTab.click();
-  await expect(evidenceGapTab).toHaveAttribute("aria-selected", "true");
+  await page.getByRole("heading", { name: "指标聚集与行业差异" }).scrollIntoViewIfNeeded();
+  await expect(page.getByRole("heading", { name: "指标命中频次" })).toBeVisible();
+  const planningTab = page.getByRole("tab", { name: "计划要素" });
+  await planningTab.click();
+  await expect(planningTab).toHaveAttribute("aria-selected", "true");
   await expect(page.locator(".diagnostic-chart canvas")).toBeVisible();
-  await page.getByRole("button", { name: "筛选未验证目标" }).click();
-  await expect(page.getByText("已聚焦：未验证目标")).toBeVisible();
-  await page.getByRole("heading", { name: "把注意力放到最值得先看的 5 项" }).scrollIntoViewIfNeeded();
+  await page.getByRole("button", { name: "筛选UPR" }).click();
+  await expect(page.getByText("已聚焦：未验证计划比例")).toBeVisible();
+  await page.getByRole("heading", { name: "优先复核与队列吞吐" }).scrollIntoViewIfNeeded();
   await page.locator(".priority-task-summary").first().click();
   await expect(page.getByRole("button", { name: "开始复核" })).toBeVisible();
   await page.getByRole("button", { name: "开始复核" }).click();
   await expect(page.getByRole("dialog", { name: "发起复核" })).toBeVisible();
   await page.getByRole("button", { name: "取消" }).click();
-  await page.getByRole("heading", { name: "判断质量是否值得信任" }).scrollIntoViewIfNeeded();
+  await page.getByRole("heading", { name: "复核一致性与来源新鲜度" }).scrollIntoViewIfNeeded();
   const canvases = page.locator("canvas");
   await expect.poll(() => canvases.count()).toBeGreaterThanOrEqual(8);
   for (const canvas of await canvases.all()) {
-    await expect(canvas).toBeVisible();
-    expect(await canvas.evaluate((node) => (node as HTMLCanvasElement).toDataURL().length)).toBeGreaterThan(1000);
+    await expectCanvasPainted(canvas);
   }
+  await page.getByRole("button", { name: /查看全部任务/ }).click();
+  await expect(page).toHaveURL(/\/review\?factor=UPR/);
+  await expect(page.getByRole("button", { name: /^全部/ })).toHaveClass(/active/);
+  await expect(page.locator(".review-queue .status-chip")).toHaveText(["UPR", "UPR"]);
   expect(errors).toEqual([]);
 });
 
 test("workflow B: report scan completes and opens analysis", async ({ page }) => {
   await page.goto("/reports");
+  await page.getByLabel("虚构公司").selectOption("linhai-energy");
   await page.locator('input[type="file"]').setInputFiles({ name: "greenlens-demo.pdf", mimeType: "application/pdf", buffer: Buffer.from("synthetic") });
   await page.getByRole("button", { name: "开始检测" }).click();
   await expect(page.getByRole("heading", { name: "合成分析已生成" })).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText("34% / 67%", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: /打开完整分析/ }).click();
-  await expect(page.getByRole("heading", { name: "澄岳新材" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "林海能源" })).toBeVisible();
 });
 
 test("report scan supports OCR recovery and explicit extraction failure", async ({ page }) => {
@@ -76,16 +95,16 @@ test("report scan supports OCR recovery and explicit extraction failure", async 
   await page.getByRole("button", { name: /新建检测/ }).click();
   await page.locator('input[type="file"]').setInputFiles({ name: "broken-demo.pdf", mimeType: "application/pdf", buffer: Buffer.from("broken synthetic") });
   await page.getByRole("button", { name: "开始检测" }).click();
-  await expect(page.getByRole("heading", { name: "未检测到可解析文本层" })).toBeVisible();
-  await page.getByRole("button", { name: "启用演示 OCR" }).click();
+  await expect(page.getByRole("heading", { name: "报告检测未完成" })).toBeVisible();
+  await page.getByRole("button", { name: "重新提交演示任务" }).click();
   await expect(page.getByRole("heading", { name: "合成分析已生成" })).toBeVisible({ timeout: 10_000 });
 });
 
 test("compare view and review undo remain interactive", async ({ page }) => {
   await page.goto("/compare");
-  await expect(page.getByText("风险维度热力表")).toBeVisible();
-  await page.getByRole("tab", { name: "评级分歧" }).click();
-  await expect(page.getByText("多源评级分歧")).toBeVisible();
+  await expect(page.getByText("核心指标 Dumbbell 对比")).toBeVisible();
+  await page.getByRole("tab", { name: "行动构成" }).click();
+  await expect(page.getByText("环境行动分类构成")).toBeVisible();
   await page.goto("/review");
   await page.getByRole("button", { name: /保存并下一条/ }).click();
   await expect(page.getByText("已保存最近一条复核结果")).toBeVisible();
@@ -104,6 +123,23 @@ test("company library paginates 30 records and applies column settings", async (
   await expect(page.getByRole("columnheader", { name: "行业" })).toHaveCount(0);
 });
 
+test("report-year filters query the repository and recover from empty results", async ({ page }) => {
+  await page.goto("/dashboard");
+  const reportYear = page.getByLabel("报告年");
+  await expect(reportYear).toBeEnabled();
+  await expect(reportYear).toHaveValue("2025");
+  await reportYear.selectOption("2024");
+  await expect(page.getByRole("heading", { name: "当前筛选下没有样本" })).toBeVisible();
+  await page.getByRole("button", { name: "恢复默认视图" }).click();
+  await expect(page.getByRole("heading", { name: "样本遥测" })).toBeVisible();
+
+  await page.goto("/companies");
+  await page.getByLabel("报告年").selectOption("2024");
+  await expect(page.getByRole("heading", { name: "当前筛选下没有公司记录" })).toBeVisible();
+  await page.getByRole("button", { name: "恢复默认视图" }).click();
+  await expect(page.getByText("共 30 家 · 每页 10 条")).toBeVisible();
+});
+
 for (const viewport of [
   { name: "desktop-1440", width: 1440, height: 900 },
   { name: "desktop-1280", width: 1280, height: 800 },
@@ -119,10 +155,10 @@ for (const viewport of [
       await band.scrollIntoViewIfNeeded();
       await page.waitForTimeout(120);
     }
-    const canvases = page.locator("canvas");
-    await expect.poll(() => canvases.count()).toBeGreaterThanOrEqual(8);
+    const canvases = page.locator("canvas:visible");
+    await expect.poll(() => canvases.count()).toBeGreaterThanOrEqual(viewport.width < 768 ? 6 : 8);
     for (const canvas of await canvases.all()) {
-      expect(await canvas.evaluate((node) => (node as HTMLCanvasElement).toDataURL().length)).toBeGreaterThan(1000);
+      await expectCanvasPainted(canvas);
     }
     await page.evaluate(() => document.documentElement.classList.add("e2e-full-render"));
     await page.evaluate(() => window.scrollTo(0, 0));

@@ -6,7 +6,7 @@ These rules apply to the entire `frontend-demo` project.
 
 ## Product Contract
 
-- Follow `../docs/frontend_demo_design_spec.md` as the authoritative product and UX specification.
+- Follow `../../docs/frontend_demo_design_spec.md` as the authoritative product and UX specification.
 - Use only synthetic companies, events, reports, ratings, and metrics.
 - Always present risk as a signal requiring review, never as a confirmed greenwashing judgment.
 - Keep the complete desktop investigation workflow and a deliberately reduced mobile workflow.

@@ -16,6 +16,16 @@ GreenLens is a desktop-first evidence investigation workspace for ESG researcher
 - Data type: IBM Plex Mono, JetBrains Mono, monospace
 - Radius: 6px panels and controls, 8px dialogs
 
+## Typography readability floor
+
+- Base interface copy: `15px`.
+- Panel captions and supporting copy: `12-13px`, with `12px` as the enforced minimum for visible DOM text.
+- Chart axes, legends, and point labels: `12px`; chart tooltips: `13px`.
+- Dashboard exception: loaded operational copy and chart labels use a `16px` minimum without increasing the fixed first-row panel height.
+- Data values and formula identifiers: `13px` or larger in the monospace role.
+- Dense layouts may reduce padding or reorganize columns, but must not reduce operational copy below `12px`.
+- The Playwright accessibility suite audits Dashboard, company library and detail, comparison, reports, review, and methodology pages against this floor.
+
 ## Layout
 
 ```text
@@ -24,18 +34,22 @@ GreenLens is a desktop-first evidence investigation workspace for ESG researcher
 |              +-------------------------------------------------------+
 | primary nav  | 48 context filters                                    |
 |              +--------------------------------------+----------------+
-| demo status  | 8/12 evidence field                  | 4/12 analysis  |
-|              +--------------------------------------+----------------+
-|              | review queue                                          |
+| demo status  | compact KPI ledger + current contract/version          |
+|              +----------------+----------------------+----------------+
+|              | telemetry      | EASS x E-AA-ESGSI  | formula ledger |
+|              +----------------+----------------------+----------------+
+|              | metric incidence | industry heatmap | diagnostics    |
 +--------------+-------------------------------------------------------+
 ```
 
-At 1024px the sidebar collapses. Below 768px navigation moves to the top and complex comparison controls are replaced by concise summaries and evidence reading.
+At 1024px the sidebar collapses. Below 768px navigation moves to the top; the Dashboard keeps decision-critical KPIs, telemetry, the main quadrant, formula ledger, diagnostics, and Top 3 review tasks, while queue throughput and governance charts are intentionally omitted.
 
 ## Signature
 
-The claim-by-fact matrix is the only expressive motion surface. Selecting a point dims the field and draws a narrow green trace into the evidence summary. This links anomaly discovery to evidence inspection without turning the interface into a game-like HUD.
+The EASS-by-E-AA-ESGSI quadrant is the only expressive motion surface. Selecting a point dims the field and exposes the selected company's metric ledger. This links action substance to the final risk signal without turning the interface into a game-like HUD.
+
+The Dashboard deliberately uses a dense audit-console layout: compact KPI strip, three-column first row, three-column diagnostic row, and short chart headers. Density comes from shared axes, consistent risk direction, and aligned rows rather than smaller unreadable type.
 
 ## Design critique
 
-The MongoDB reference suggests deep teal bands, bright green calls to action, large marketing typography, pill buttons, and rounded card grids. Only its dark/green contrast and disciplined use of accent color fit the product. The marketing hero, universal pills, 12px card radius, negative letter spacing, and generous landing-page whitespace were removed because they reduce scan density and conflict with the implementation specification. The resulting direction is specific to evidence review, not a reusable SaaS landing-page template.
+The dark/green contrast and disciplined accent use fit the product, while marketing typography, universal pills, large-radius cards, and generous landing-page whitespace do not. The audit-console structure is specific to evidence review: high information density on desktop, then a single-column evidence workflow below 1024px.

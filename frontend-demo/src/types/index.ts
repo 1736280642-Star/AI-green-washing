@@ -1,15 +1,58 @@
 export type RiskBand = "high" | "medium" | "low" | "unavailable";
 export type ReviewStatus = "pending" | "partial" | "reviewed" | "disputed";
 export type EvidenceStatus = "verified" | "pending" | "insufficient" | "disputed";
+export type CalculationStatus = "calculated" | "mock" | "unavailable";
+export type MetricCode = "EASS" | "IR" | "UPR" | "ESGSI" | "EAA_ESGSI" | "IMBALANCE";
+export type RiskDirection = "higher_is_risk" | "lower_is_risk" | "contextual";
+export type EnvironmentalActionClass = "implemented" | "planning" | "indeterminate";
 
-export interface RiskComponent {
-  code: "VAGUE" | "UNVERIFIED_TARGET" | "QUANT_GAP" | "DECOUPLING" | "SELECTIVE" | "EXTERNAL_FACT";
+export interface AnalysisMetric {
+  code: MetricCode;
   label: string;
-  value: number;
-  weight: number;
-  contribution: number;
-  industryMedian: number;
+  rawValue: number | null;
+  riskValue: number | null;
+  numerator?: number;
+  denominator?: number;
+  weight?: number;
+  contribution?: number;
+  threshold?: number;
+  riskDirection: RiskDirection;
+  formulaVersion: string;
+  calculationStatus: CalculationStatus;
+  unavailableReason?: string;
   evidenceIds: string[];
+}
+
+export interface TextProcessingMetrics {
+  totalWords: number;
+  sentenceCount: number;
+  tokenCount: number;
+}
+
+export interface EsgTopicMetrics {
+  eCount: number;
+  sCount: number;
+  gCount: number;
+  eFocus: number;
+  sFocus: number;
+  gFocus: number;
+  imbalanceScore: number;
+}
+
+export interface EnvironmentalActionSummary {
+  totalStatements: number;
+  implemented: number;
+  planning: number;
+  indeterminate: number;
+  planningAlpha: number;
+}
+
+export interface IndexBreakdown {
+  baseEsgsi: number | null;
+  actionPenalty: number | null;
+  indeterminatePenalty: number | null;
+  planningPenalty: number | null;
+  finalIndex: number | null;
 }
 
 export interface EvidenceItem {
@@ -17,6 +60,8 @@ export interface EvidenceItem {
   companyId: string;
   reportYear: number;
   type: "claim" | "action" | "metric" | "verification" | "external";
+  actionClass?: EnvironmentalActionClass;
+  metricCode?: MetricCode;
   title: string;
   excerpt: string;
   page?: number;
@@ -34,23 +79,33 @@ export interface CompanyYearRecord {
   industry: string;
   reportYear: number;
   publishDate: string;
-  riskScore: number | null;
+  finalIndex: number | null;
   riskBand: RiskBand;
-  claimPercentile: number | null;
-  factPercentile: number | null;
   evidenceCoverage: number;
   evidenceStatus: EvidenceStatus;
   reviewStatus: ReviewStatus;
   eventCount: number;
-  components: RiskComponent[];
-  versions: { data: string; model: string };
+  textProcessing: TextProcessingMetrics;
+  esgTopics: EsgTopicMetrics;
+  environmentalActions: EnvironmentalActionSummary;
+  metrics: AnalysisMetric[];
+  indexBreakdown: IndexBreakdown;
+  versions: {
+    schema: string;
+    data: string;
+    feature: string;
+    model: string;
+    score: string;
+    threshold: string;
+  };
+  computedAt: string;
 }
 
 export interface ReviewRecord {
   id: string;
   targetId: string;
   companyId: string;
-  targetType: "evidence" | "event" | "entity_match" | "risk_label";
+  targetType: "evidence" | "event" | "entity_match" | "risk_label" | "action_classification" | "metric";
   originalDecision: string;
   humanDecision?: "confirm" | "reject" | "partial" | "insufficient";
   reasonCode?: string;
@@ -61,14 +116,15 @@ export interface ReviewRecord {
 export interface DashboardReviewTask {
   id: string;
   companyId: string;
-  type: RiskComponent["code"];
+  reviewType: "action_classification" | "EASS" | "IR" | "UPR" | "risk_band";
+  metricCode: MetricCode;
   reason: string;
   impact: number;
   ageHours: number;
   uncertainty: number;
   evidenceStatus: EvidenceStatus;
-  claimPercentile: number;
-  factPercentile: number;
+  metricValue: number;
+  threshold: number;
   evidenceId: string;
 }
 
@@ -105,4 +161,38 @@ export interface DashboardInsights {
   modelAgreement: ModelAgreementRecord[];
   sourceFreshness: SourceFreshnessRecord[];
   evidenceCoverage: EvidenceCoverageDimension[];
+}
+
+export interface AnalysisJob {
+  jobId: string;
+  reportId: string;
+  status: "queued" | "running" | "completed" | "failed";
+  phase: "collect" | "preprocess" | "extract" | "classify" | "calculate" | "risk";
+  progress: number;
+  resultCompanyId?: string;
+  error?: { cause: string; impact: string; nextAction: string };
+}
+
+export const metricCodes: MetricCode[] = ["EASS", "IR", "UPR", "ESGSI", "EAA_ESGSI", "IMBALANCE"];
+
+export function getMetric(record: CompanyYearRecord, code: MetricCode) {
+  return record.metrics.find((metric) => metric.code === code);
+}
+
+export function metricPercent(record: CompanyYearRecord, code: MetricCode, field: "rawValue" | "riskValue" = "rawValue") {
+  const value = getMetric(record, code)?.[field];
+  return value == null ? null : Math.round(value * 100);
+}
+
+export function formatPercent(value: number | null | undefined) {
+  return value == null ? "--" : `${Math.round(value * 100)}%`;
+}
+
+export function formatMetricPercent(record: CompanyYearRecord, code: MetricCode, field: "rawValue" | "riskValue" = "rawValue") {
+  const value = getMetric(record, code)?.[field];
+  return formatPercent(value);
+}
+
+export function formatDecimal(value: number | null | undefined) {
+  return value == null ? "--" : value.toFixed(2);
 }

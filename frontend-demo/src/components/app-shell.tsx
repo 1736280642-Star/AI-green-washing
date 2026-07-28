@@ -19,7 +19,7 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useDemoStore } from "@/stores/demo-store";
 import { GlobalLayers } from "@/components/global-layers";
 
@@ -41,11 +41,31 @@ const pageTitles: Record<string, string> = {
   methodology: "方法与模型",
 };
 
+function subscribeToStoreHydration(onStoreChange: () => void) {
+  const persistApi = useDemoStore.persist;
+  if (!persistApi) return () => undefined;
+  const unsubscribeStart = persistApi.onHydrate(onStoreChange);
+  const unsubscribeFinish = persistApi.onFinishHydration(onStoreChange);
+  return () => {
+    unsubscribeStart();
+    unsubscribeFinish();
+  };
+}
+
+function getStoreHydrationSnapshot() {
+  return useDemoStore.persist?.hasHydrated() ?? false;
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileNav, setMobileNav] = useState(false);
+  const filtersReady = useSyncExternalStore(
+    subscribeToStoreHydration,
+    getStoreHydrationSnapshot,
+    () => false,
+  );
   const { year, industry, risk, setFilters, openDrawer, notifications, reset, showToast } = useDemoStore();
   const root = pathname.split("/")[1] || "dashboard";
   const title = root === "companies" && pathname.split("/").length > 2 ? "企业分析" : pageTitles[root];
@@ -116,11 +136,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <div className="context-bar" aria-label="全局筛选">
-          <label><span>报告年</span><select value={year} onChange={(event) => setFilters({ year: Number(event.target.value) })}><option>2025</option><option>2024</option><option>2023</option></select></label>
-          <label><span>行业</span><select value={industry} onChange={(event) => setFilters({ industry: event.target.value })}><option>全部行业</option><option>新材料</option><option>综合能源</option><option>交通设备</option><option>消费品</option><option>电子制造</option><option>建筑</option></select></label>
-          <label><span>风险</span><select value={risk} onChange={(event) => setFilters({ risk: event.target.value })}><option>全部风险</option><option>高风险</option><option>中风险</option><option>低风险</option></select></label>
-          {(industry !== "全部行业" || risk !== "全部风险" || year !== 2025) && <button className="text-button" onClick={() => setFilters({ year: 2025, industry: "全部行业", risk: "全部风险" })}>清除筛选</button>}
+        <div className="context-bar" aria-label="全局筛选" aria-busy={!filtersReady}>
+          <label><span>报告年</span><select disabled={!filtersReady} value={year} onChange={(event) => setFilters({ year: Number(event.target.value) })}><option>2025</option><option>2024</option><option>2023</option></select></label>
+          <label><span>行业</span><select disabled={!filtersReady} value={industry} onChange={(event) => setFilters({ industry: event.target.value })}><option>全部行业</option><option>新材料</option><option>综合能源</option><option>交通设备</option><option>消费品</option><option>电子制造</option><option>建筑</option></select></label>
+          <label><span>风险</span><select disabled={!filtersReady} value={risk} onChange={(event) => setFilters({ risk: event.target.value })}><option>全部风险</option><option>高风险</option><option>中风险</option><option>低风险</option><option>暂不可评分</option></select></label>
+          {(industry !== "全部行业" || risk !== "全部风险" || year !== 2025) && <button className="text-button" disabled={!filtersReady} onClick={() => setFilters({ year: 2025, industry: "全部行业", risk: "全部风险" })}>清除筛选</button>}
           <span className="context-count">合成样本 · 口径截至 {year}</span>
         </div>
 
