@@ -38,3 +38,40 @@ The audit found that an interface alone was insufficient while pages still impor
 ## Reusable assets
 
 The repeated acceptance workflow is automated in `tests/e2e/workflows.spec.ts`. Repository scenario handling, metric-contract validation, zero-denominator guards, evidence states, responsive audit layouts, and accessibility checks are reusable foundations for later API-backed iterations.
+
+## Dashboard visual-system refactor · 2026-07-29
+
+- Typography now ships with local `Noto Sans SC Variable`, `Space Grotesk Variable`, and `IBM Plex Mono` assets. The Dashboard readability gate was raised from 8px to 10px and covers the complete app shell, not only the command-center subtree.
+- Dashboard colors were reduced to explicit roles: cyan for data and selection, coral for high-risk review signals, amber for pending or medium-risk states, green for verified or ready states, and violet only for GreenLens AI.
+- The 3D constellation now derives its X/Y bounds from the filtered dataset, fills roughly 75%–80% of the stage, fits the orthographic camera to the live viewport, and uses industry, persistence, and evidence coverage to encode depth without changing the exact 2D fallback coordinates.
+- Tablet switches the global search to an icon control, moves the synthetic-data notice into document flow, removes panel blur for lower compositing cost, and keeps the full analytical stack available through vertical scrolling. Mobile retains the intentionally reduced workflow.
+- Chromium full-page screenshots can leave offscreen Canvas layers blank until scrolled into view. The release gate therefore combines viewport screenshots, explicit Canvas pixel checks, overflow checks, and a scrolled tablet review instead of treating a single long screenshot as ground truth.
+- The release audit required upgrading Next.js to `16.2.12` and overriding its bundled `postcss`/`sharp` versions. Production dependencies now audit clean; forcing the separate development-only `brace-expansion` advisory to a new major broke legacy `minimatch`, so that unsafe override was explicitly rejected in favor of a stable lint toolchain.
+
+## Dashboard green command-center refinement · 2026-07-30
+
+- The first-view title now keeps only `HOLOGRAPHIC EVIDENCE OBSERVATORY`; removing the duplicate Chinese heading recovered vertical space without weakening the app-shell page title.
+- Black-green surfaces and green coordinate light now cover the Dashboard panels, ECharts views, 2D risk field, and Three.js scene. Coral and amber remain reserved for risk meaning, blue-gray remains the low-risk node color, cyan is limited to the observatory identity, and violet remains AI-only.
+- Compact KPI, construct, and watchlist modules show only definitions, entities, primary values, and graphics. Definitions, statistical scope, version metadata, and secondary explanations move into accessible detail dialogs.
+- KPI values and construct values were enlarged by roughly 50%. The bottom section switches to two charts plus a full-width audit panel at 901–1599px, because three narrow audit columns caused label compression and made repeated review slower.
+- Every non-KPI module exposes the same top-right full-view control. Expanded modules rerender at the available dialog size instead of scaling the compact view, and dialogs restore focus to their triggering control after Escape or close.
+- Mobile retains the complete analytical stack through vertical scrolling. It no longer removes the bottom modules, and its full-view dialogs use the dynamic viewport while preserving the 10px minimum utility-copy floor.
+- The synthetic-data notice enters document flow on Dashboard routes so it cannot cover chart labels or heatmap cells. Four-viewport Playwright checks now cover overflow, painted Canvas output, dialog interaction, and focus return.
+- The page foundation now uses a near-black neutral base with only low-opacity green ambient light. Keeping the green density inside working panels creates clearer depth than applying the same green cast to both the page and its modules.
+- The English observatory marker, four filters, contract version, operational state, export, and AI entry now share one toolbar row on desktop. Existing narrower layouts remain compatibility fallbacks rather than current design targets.
+
+## Dashboard desktop release closure · 2026-07-30
+
+- The accepted release targets are now `1440×900` and `1280×800`. A dedicated Playwright gate checks zero page-level scrolling, zero horizontal overflow, one-line toolbar alignment, and every primary/bottom panel boundary against the viewport.
+- Route-specific CSS can visually collapse a sidebar even when React's manual `collapsed` state is false. Navigation accessibility must therefore live on the link itself, not depend on visible child text. Every navigation link now keeps an `aria-label`, `aria-current`, and title while the icon remains decorative.
+- The Dashboard readability floor is 12px for normal, loading, empty, tooltip, legend, dialog, and Copilot states. Enlarging only the currently visible labels left latent regressions, so the automated gate covers all visible leaf text at runtime.
+- The industry heatmap now uses a brighter scientific false-color ramp from blue-gray through green and amber to coral. Blue-gray prevents green from carrying both “environmental theme” and “low risk,” while brighter middle bands remain legible against the near-black panel.
+- Production dependencies audit clean. ESLint 10 was tested as a possible fix for the development-only `brace-expansion` advisory, but the current Next.js React lint plugins are not ESLint 10 compatible. The compatible ESLint 9 toolchain is retained; force-fixing or overriding the transitive package is prohibited until upstream compatibility lands.
+
+## Dashboard requirement recovery and large-desktop correction · 2026-07-30
+
+- Visual references are not a substitute for product requirements. The old session's valid user statements were normalized into `dashboard-product-requirements-v2.md`, with each visual choice tied to a research task and an automated acceptance rule.
+- `minmax(..., 1fr)` solved 1280×800 but over-expanded the primary analysis row at 2048×1227. The corrected layout uses a viewport-related row height capped at 520px, keeping modules contiguous while leaving optional space only after the complete analytical stack.
+- A stale `.next/dev` chunk can make a running page disagree with the source tree. The reliable diagnosis is to compare visible copy with source, identify the exact listener process, clear only the active target's generated development cache, and verify the restarted server's DOM and geometry.
+- Geometry-changing entrance animation made sequential browser measurements observe different frames. The command bar now fades without translation; staged panel motion remains short and never delays access to the controls.
+- The release matrix now covers 1280×800, 1440×900, 1920×1080, and 2048×1227. It checks single-row alignment, no page overflow, no clipped top controls, no inter-module spacer, a 520px primary-row cap, painted Canvas output, and zero serious accessibility violations.

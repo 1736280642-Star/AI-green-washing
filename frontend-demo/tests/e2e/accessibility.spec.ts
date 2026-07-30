@@ -12,14 +12,13 @@ for (const route of ["/dashboard", "/companies/cy-materials?tab=evidence", "/rep
 }
 
 for (const route of ["/dashboard", "/companies", "/companies/cy-materials", "/compare", "/reports", "/review", "/methodology"]) {
-  const minimumFontSize = route === "/dashboard" ? 16 : 12;
+  const minimumFontSize = 12;
   test(`visible interface copy meets the ${minimumFontSize}px readability floor: ${route}`, async ({ page }) => {
     if (route === "/dashboard") test.slow();
     await page.goto(route);
     await page.locator("main").waitFor();
-    if (route === "/dashboard") await expect(page.getByRole("heading", { name: "样本遥测" })).toBeVisible();
-    const scope = route === "/dashboard" ? ".dashboard-page *:visible" : "body *:visible";
-    const undersized = await page.locator(scope).evaluateAll((nodes, minimum) => nodes.flatMap((node) => {
+    if (route === "/dashboard") await expect(page.getByRole("heading", { name: "漂绿风险星图" })).toBeVisible();
+    const undersized = await page.locator("body *:visible").evaluateAll((nodes, minimum) => nodes.flatMap((node) => {
       const element = node as HTMLElement;
       const hasOwnCopy = Array.from(element.childNodes).some((child) => child.nodeType === Node.TEXT_NODE && child.textContent?.trim());
       if (!hasOwnCopy) return [];

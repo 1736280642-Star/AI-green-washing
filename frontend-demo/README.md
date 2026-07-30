@@ -62,7 +62,8 @@ The underlying reason for these boundaries is migration cost: a real API can rep
 
 ## Documentation
 
-- [Metric contract v1](docs/metric-contract-v1.md)
+- [Metric contract v2](docs/metric-contract-v2.md)
+- [Metric contract v1（历史）](docs/metric-contract-v1.md)
 - [Design decisions](docs/design-decisions.md)
 - [Mock data dictionary](docs/mock-data-dictionary.md)
 - [Demo guide](docs/demo-guide.md)

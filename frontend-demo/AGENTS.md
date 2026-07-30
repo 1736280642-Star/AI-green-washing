@@ -7,6 +7,7 @@ These rules apply to the entire `frontend-demo` project.
 ## Product Contract
 
 - Follow `../../docs/frontend_demo_design_spec.md` as the authoritative product and UX specification.
+- For `/dashboard`, follow `docs/dashboard-product-requirements-v2.md` when it is more specific than the general design specification.
 - Use only synthetic companies, events, reports, ratings, and metrics.
 - Always present risk as a signal requiring review, never as a confirmed greenwashing judgment.
 - Keep the complete desktop investigation workflow and a deliberately reduced mobile workflow.

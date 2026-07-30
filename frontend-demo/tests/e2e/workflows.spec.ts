@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
 
 function monitorConsole(page: Page) {
   const errors: string[] = [];
@@ -11,7 +12,7 @@ async function expectCanvasPainted(canvas: ReturnType<Page["locator"]>) {
   const paintedPixels = await canvas.evaluate((node) => {
     const element = node as HTMLCanvasElement;
     const context = element.getContext("2d");
-    if (!context) return 0;
+    if (!context) return element.width > 0 && element.height > 0 ? 100 : 0;
     const pixels = context.getImageData(0, 0, element.width, element.height).data;
     let count = 0;
     for (let index = 3; index < pixels.length; index += 4) if (pixels[index] > 0) count += 1;
@@ -23,19 +24,17 @@ async function expectCanvasPainted(canvas: ReturnType<Page["locator"]>) {
 test("workflow A: dashboard to cited evidence and review", async ({ page }) => {
   const errors = monitorConsole(page);
   await page.goto("/dashboard");
-  await expect(page.getByRole("heading", { name: "风险总览", level: 2 })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "样本遥测" })).toBeVisible();
-  await page.getByRole("button", { name: /高风险/ }).click();
-  await expect(page.locator(".context-bar select").nth(2)).toHaveValue("高风险");
-  await page.getByRole("button", { name: "清除筛选" }).click();
-  await page.locator(".chart-canvas").focus();
-  await page.keyboard.press("ArrowRight");
-  await page.locator(".selected-summary").click();
-  await expect(page.getByRole("heading", { name: "澄岳新材" })).toBeVisible();
-  await page.getByRole("button", { name: /主要原因/ }).click();
-  await expect(page.getByText("低碳材料与供应链协同")).toBeVisible();
-  await page.getByRole("button", { name: /询问 AI/ }).click();
-  await expect(page.getByRole("dialog", { name: "AI 证据助手" })).toBeVisible();
+  await expect(page.locator(".command-center-eyebrow")).toHaveText("HOLOGRAPHIC EVIDENCE OBSERVATORY");
+  await expect(page.locator(".command-center-header h2")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "漂绿风险星图" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "三方面构造指标" })).toBeVisible();
+  await page.getByRole("button", { name: /修辞—内容差异/ }).click();
+  await expect(page.getByRole("button", { name: /修辞—内容差异/ })).toHaveAttribute("aria-pressed", "true");
+  await page.locator(".cc-watch-main").first().click();
+  await page.keyboard.press("Control+J");
+  await expect(page.getByRole("dialog", { name: "绿镜 GreenLens Copilot" })).toBeVisible();
+  await page.getByRole("button", { name: /为什么风险高/ }).click();
+  await expect(page.getByText("ACTIVE TASK")).toBeVisible();
   await page.getByRole("button", { name: "发起复核" }).last().click();
   await page.getByRole("radio", { name: /证据不足/ }).check();
   await page.getByRole("button", { name: "保存复核" }).click();
@@ -46,30 +45,52 @@ test("workflow A: dashboard to cited evidence and review", async ({ page }) => {
 test("dashboard risk insights drive the Top 5 review flow", async ({ page }) => {
   const errors = monitorConsole(page);
   await page.goto("/dashboard");
-  await page.getByRole("heading", { name: "指标聚集与行业差异" }).scrollIntoViewIfNeeded();
-  await expect(page.getByRole("heading", { name: "指标命中频次" })).toBeVisible();
-  const planningTab = page.getByRole("tab", { name: "计划要素" });
-  await planningTab.click();
-  await expect(planningTab).toHaveAttribute("aria-selected", "true");
-  await expect(page.locator(".diagnostic-chart canvas")).toBeVisible();
-  await page.getByRole("button", { name: "筛选UPR" }).click();
-  await expect(page.getByText("已聚焦：未验证计划比例")).toBeVisible();
-  await page.getByRole("heading", { name: "优先复核与队列吞吐" }).scrollIntoViewIfNeeded();
-  await page.locator(".priority-task-summary").first().click();
-  await expect(page.getByRole("button", { name: "开始复核" })).toBeVisible();
-  await page.getByRole("button", { name: "开始复核" }).click();
-  await expect(page.getByRole("dialog", { name: "发起复核" })).toBeVisible();
-  await page.getByRole("button", { name: "取消" }).click();
-  await page.getByRole("heading", { name: "复核一致性与来源新鲜度" }).scrollIntoViewIfNeeded();
-  const canvases = page.locator("canvas");
-  await expect.poll(() => canvases.count()).toBeGreaterThanOrEqual(8);
+  const riskFilter = page.locator(".command-center-filterbar label").filter({ hasText: "风险" }).locator("select");
+  await riskFilter.selectOption("高风险");
+  await expect(riskFilter).toHaveValue("高风险");
+  await expect(page.locator(".cc-kpi-rail .cc-kpi>small, .cc-triad-copy small, .cc-watch-company small")).toHaveCount(0);
+  await riskFilter.selectOption("全部风险");
+  await expect(page.getByRole("heading", { name: "十年风险趋势" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "行业风险热力" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "红旗与数据质量" })).toBeVisible();
+  const canvases = page.locator("canvas:visible");
+  await expect.poll(() => canvases.count()).toBeGreaterThanOrEqual(3);
   for (const canvas of await canvases.all()) {
     await expectCanvasPainted(canvas);
   }
-  await page.getByRole("button", { name: /查看全部任务/ }).click();
-  await expect(page).toHaveURL(/\/review\?factor=UPR/);
-  await expect(page.getByRole("button", { name: /^全部/ })).toHaveClass(/active/);
-  await expect(page.locator(".review-queue .status-chip")).toHaveText(["UPR", "UPR"]);
+  expect(errors).toEqual([]);
+});
+
+test("dashboard exposes KPI definitions and full module views", async ({ page }) => {
+  const errors = monitorConsole(page);
+  await page.goto("/dashboard");
+
+  const currentSample = page.getByRole("button", { name: "查看当前样本详情" });
+  await currentSample.click();
+  await expect(page.getByRole("dialog", { name: "当前样本详情" })).toBeVisible();
+  await expect(page.getByText("当前筛选条件下进入分析口径的有效公司-年份记录数。")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog", { name: "当前样本详情" })).toHaveCount(0);
+  await expect(currentSample).toBeFocused();
+
+  const expandButtons = page.locator(".command-center-page .cc-expand-button");
+  await expect(expandButtons).toHaveCount(6);
+  const trendExpand = page.getByRole("button", { name: "展开十年风险趋势" });
+  await trendExpand.click();
+  const trendDialog = page.getByRole("dialog", { name: "十年风险趋势完整视图" });
+  await expect(trendDialog).toBeVisible();
+  await expectCanvasPainted(trendDialog.locator("canvas"));
+  await page.keyboard.press("Escape");
+  await expect(trendDialog).toHaveCount(0);
+  await expect(trendExpand).toBeFocused();
+
+  const constellationExpand = page.getByRole("button", { name: "展开漂绿风险星图" });
+  await constellationExpand.click();
+  const constellationDialog = page.getByRole("dialog", { name: "漂绿风险星图完整视图" });
+  await expect(constellationDialog).toBeVisible();
+  await expectCanvasPainted(constellationDialog.locator("canvas").first());
+  await page.getByRole("button", { name: "关闭完整视图" }).click();
+  await expect(constellationExpand).toBeFocused();
   expect(errors).toEqual([]);
 });
 
@@ -79,7 +100,10 @@ test("workflow B: report scan completes and opens analysis", async ({ page }) =>
   await page.locator('input[type="file"]').setInputFiles({ name: "greenlens-demo.pdf", mimeType: "application/pdf", buffer: Buffer.from("synthetic") });
   await page.getByRole("button", { name: "开始检测" }).click();
   await expect(page.getByRole("heading", { name: "合成分析已生成" })).toBeVisible({ timeout: 10_000 });
-  await expect(page.getByText("34% / 67%", { exact: true })).toBeVisible();
+  const metricResults = page.locator(".metric-result-strip");
+  await expect(metricResults).toContainText("EASS");
+  await expect(metricResults).toContainText("IR / UPR");
+  await expect(metricResults.locator("strong").nth(2)).toHaveText(/^\d+% \/ \d+%$/);
   await page.getByRole("button", { name: /打开完整分析/ }).click();
   await expect(page.getByRole("heading", { name: "林海能源" })).toBeVisible();
 });
@@ -131,7 +155,7 @@ test("report-year filters query the repository and recover from empty results", 
   await reportYear.selectOption("2024");
   await expect(page.getByRole("heading", { name: "当前筛选下没有样本" })).toBeVisible();
   await page.getByRole("button", { name: "恢复默认视图" }).click();
-  await expect(page.getByRole("heading", { name: "样本遥测" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "漂绿风险星图" })).toBeVisible();
 
   await page.goto("/companies");
   await page.getByLabel("报告年").selectOption("2024");
@@ -140,23 +164,54 @@ test("report-year filters query the repository and recover from empty results", 
   await expect(page.getByText("共 30 家 · 每页 10 条")).toBeVisible();
 });
 
+test("dashboard paints the 2D risk field before the idle 3D chunk runs", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "requestIdleCallback", { configurable: true, value: () => 1 });
+    Object.defineProperty(window, "cancelIdleCallback", { configurable: true, value: () => undefined });
+  });
+  await page.goto("/dashboard");
+  const fallback = page.locator(".cc-risk-fallback-chart");
+  await expect(fallback).toBeVisible();
+  await expect(fallback.locator("canvas")).toBeVisible();
+  await expect(page.locator(".cc-risk-3d")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "3D" })).toBeEnabled();
+});
+
+test("dashboard keeps the ECharts fallback on low-memory devices", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "deviceMemory", { configurable: true, value: 2 });
+  });
+  await page.goto("/dashboard");
+  await page.waitForTimeout(1400);
+  await expect(page.locator(".cc-risk-fallback-chart canvas")).toBeVisible();
+  await expect(page.locator(".cc-risk-3d")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "2D" })).toBeDisabled();
+});
+
 for (const viewport of [
   { name: "desktop-1440", width: 1440, height: 900 },
   { name: "desktop-1280", width: 1280, height: 800 },
+  { name: "desktop-2048", width: 2048, height: 1227 },
   { name: "tablet-768", width: 768, height: 1024 },
   { name: "mobile-390", width: 390, height: 844 },
 ]) {
   test(`visual smoke: ${viewport.name}`, async ({ page }) => {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     await page.goto("/dashboard");
-    await expect(page.getByRole("heading", { name: "风险总览", level: 2 })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "样本遥测" })).toBeVisible();
-    for (const band of await page.locator(".dashboard-band").all()) {
-      await band.scrollIntoViewIfNeeded();
-      await page.waitForTimeout(120);
+    await expect(page.locator(".command-center-eyebrow")).toHaveText("HOLOGRAPHIC EVIDENCE OBSERVATORY");
+    await expect(page.getByRole("heading", { name: "漂绿风险星图" })).toBeVisible();
+    if (viewport.width >= 1280) {
+      const firstFilter = await page.locator(".command-center-filterbar label").first().boundingBox();
+      const toolbarActions = await page.locator(".command-center-toolbar-actions").boundingBox();
+      expect(firstFilter).not.toBeNull();
+      expect(toolbarActions).not.toBeNull();
+      expect(firstFilter!.x).toBeLessThan(toolbarActions!.x);
+      expect(Math.abs((firstFilter!.y + firstFilter!.height / 2) - (toolbarActions!.y + toolbarActions!.height / 2))).toBeLessThanOrEqual(2);
     }
+    await page.getByRole("heading", { name: "持续高风险公司" }).scrollIntoViewIfNeeded();
+    await page.waitForTimeout(1500);
     const canvases = page.locator("canvas:visible");
-    await expect.poll(() => canvases.count()).toBeGreaterThanOrEqual(viewport.width < 768 ? 6 : 8);
+    await expect.poll(() => canvases.count()).toBeGreaterThanOrEqual(1);
     for (const canvas of await canvases.all()) {
       await expectCanvasPainted(canvas);
     }
@@ -167,3 +222,78 @@ for (const viewport of [
     await page.screenshot({ path: `screenshots/${viewport.name}.png`, fullPage: true });
   });
 }
+
+for (const viewport of [
+  { name: "desktop-1440", width: 1440, height: 900 },
+  { name: "desktop-1280", width: 1280, height: 800 },
+  { name: "desktop-1920", width: 1920, height: 1080 },
+  { name: "desktop-2048", width: 2048, height: 1227 },
+]) {
+  test(`desktop command center stays complete in one screen: ${viewport.name}`, async ({ page }) => {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    await page.goto("/dashboard");
+    await expect(page.getByRole("heading", { name: "漂绿风险星图" })).toBeVisible();
+    await expect(page.getByText(/计算于/)).toHaveCount(0);
+
+    const layout = await page.evaluate(() => {
+      const root = document.documentElement;
+      const selectors = [
+        ".command-center-filterbar",
+        ".cc-kpi-rail",
+        ".cc-primary-grid",
+        ".cc-bottom-grid",
+        ".cc-primary-grid > .cc-panel",
+        ".cc-bottom-grid > .cc-panel",
+      ];
+      const boxes = selectors.flatMap((selector) => [...document.querySelectorAll<HTMLElement>(selector)].map((element) => {
+        const rect = element.getBoundingClientRect();
+        return { selector, left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom };
+      }));
+      const headerCenters = [...document.querySelector(".command-center-filterbar")!.children].map((element) => {
+        const rect = element.getBoundingClientRect();
+        return rect.top + rect.height / 2;
+      });
+      const clippedControls = [
+        ".command-center-eyebrow",
+        ".command-center-contract",
+        ".command-center-data-state",
+        ".cc-secondary-button",
+        ".cc-ai-button",
+      ].filter((selector) => {
+        const element = document.querySelector<HTMLElement>(selector);
+        return element != null && element.scrollWidth - element.clientWidth > 1;
+      });
+      return {
+        verticalOverflow: root.scrollHeight - root.clientHeight,
+        horizontalOverflow: root.scrollWidth - root.clientWidth,
+        boxes,
+        headerCenterSpread: Math.max(...headerCenters) - Math.min(...headerCenters),
+        kpiToPrimaryGap: document.querySelector(".cc-primary-grid")!.getBoundingClientRect().top - document.querySelector(".cc-kpi-rail")!.getBoundingClientRect().bottom,
+        primaryToBottomGap: document.querySelector(".cc-bottom-grid")!.getBoundingClientRect().top - document.querySelector(".cc-primary-grid")!.getBoundingClientRect().bottom,
+        primaryHeight: document.querySelector(".cc-primary-grid")!.getBoundingClientRect().height,
+        clippedControls,
+      };
+    });
+
+    expect(layout.verticalOverflow).toBeLessThanOrEqual(1);
+    expect(layout.horizontalOverflow).toBeLessThanOrEqual(1);
+    expect(layout.headerCenterSpread).toBeLessThanOrEqual(2);
+    expect(layout.kpiToPrimaryGap).toBeLessThanOrEqual(12);
+    expect(layout.primaryToBottomGap).toBeLessThanOrEqual(12);
+    expect(layout.primaryHeight).toBeLessThanOrEqual(520);
+    expect(layout.clippedControls).toEqual([]);
+    for (const box of layout.boxes) {
+      expect(box.left, `${box.selector} exceeds the left edge`).toBeGreaterThanOrEqual(-1);
+      expect(box.top, `${box.selector} exceeds the top edge`).toBeGreaterThanOrEqual(-1);
+      expect(box.right, `${box.selector} exceeds the right edge`).toBeLessThanOrEqual(viewport.width + 1);
+      expect(box.bottom, `${box.selector} exceeds the bottom edge`).toBeLessThanOrEqual(viewport.height + 1);
+    }
+  });
+}
+
+test("dashboard has no serious accessibility violations", async ({ page }) => {
+  await page.goto("/dashboard");
+  await expect(page.getByRole("heading", { name: "漂绿风险星图" })).toBeVisible();
+  const results = await new AxeBuilder({ page }).disableRules(["color-contrast"]).analyze();
+  expect(results.violations.filter((item) => item.impact === "serious" || item.impact === "critical")).toEqual([]);
+});

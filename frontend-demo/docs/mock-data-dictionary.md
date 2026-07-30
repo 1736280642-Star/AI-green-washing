@@ -2,36 +2,40 @@
 
 ## Data policy
 
-Every company, stock code, report excerpt, event, source, rating, and metric in the demo is synthetic. Values are fixed so refreshes and screenshots remain reproducible. Source links use `.invalid` domains and cannot resolve to a real site.
+Every company, stock code, report excerpt, violation event, financial record, source, rating, and metric in the demo is synthetic. Values are deterministic so refreshes, tests, and screenshots remain reproducible. Source links use `.invalid` domains.
 
 ## Core records
 
-| Company ID | Synthetic company | Synthetic code | Industry | 2025 E-AA-ESGSI | Review status |
-| --- | --- | --- | --- | ---: | --- |
-| `cy-materials` | 澄岳新材 | 688217 | 新材料 | 78 | 部分复核 |
-| `linhai-energy` | 林海能源 | 600741 | 综合能源 | 72 | 待复核 |
-| `qiming-mobility` | 启明交通 | 301482 | 交通设备 | 61 | 已复核 |
-| `beichen-foods` | 北辰食品 | 002761 | 消费品 | 43 | 证据不足 |
-| `yuanfang-tech` | 远方科技 | 688903 | 电子制造 | 29 | 已复核 |
-| `jiuhe-build` | 九禾建设 | 601593 | 建筑 | 55 | 存在争议 |
+| Company ID | Synthetic company | Synthetic code | Industry | Report year |
+| --- | --- | --- | --- | ---: |
+| `cy-materials` | 澄岳新材 | 688217 | 新材料 | 2025 |
+| `linhai-energy` | 林海能源 | 600741 | 综合能源 | 2025 |
+| `qiming-mobility` | 启明交通 | 301482 | 交通设备 | 2025 |
+| `beichen-foods` | 北辰食品 | 002761 | 消费品 | 2025 |
+| `yuanfang-tech` | 远方科技 | 688903 | 电子制造 | 2025 |
+| `jiuhe-build` | 九禾建设 | 601593 | 建筑 | 2025 |
 
-以上 6 条是跨页面主流程样本；企业库另包含 24 条固定生成的合成记录，总计 30 条，用于验证每页 10 条的分页、搜索、排序、列设置和批量对比。生成记录使用 `demo-company-*` ID 与 `D*****` 虚构代码，每次刷新保持一致。每家公司均生成 UPR、IR、ESGSI、EASS、E-AA-ESGSI 与外部事实证据，确保所有指标跳转都能在当前公司的证据集合中解析。
+The company library also contains 24 deterministic generated records, for 30 company-year records in total.
 
-## Contracts
+## Metric contract v2 objects
 
-- `CompanyYearRecord`: one synthetic company and report year, with text statistics, ESG focus, action classes, six metrics, evidence quality, review state, and versions.
-- `AnalysisMetric`: one of `EASS / IR / UPR / ESGSI / EAA_ESGSI / IMBALANCE`, with raw value, risk-direction value, numerator, denominator, threshold, formula version, and evidence references.
-- `EvidenceItem`: a synthetic report phrase, metric gap, or external event with source and review status.
-- `ReviewRecord`: the model decision, human decision, reason, note, and timestamp.
-- `DashboardReviewTask`: a versioned review target for action classification, EASS, IR, UPR, or risk-band review.
+- `CompanyYearRecord`: report identity, text statistics, ESG focus, action classes, planning verification, score inputs, six metrics, formula breakdown, versioned risk classification, panel audit metadata, evidence quality, and review state.
+- `AnalysisMetric`: raw, normalized, and risk-direction values plus formula and normalization versions.
+- `EnvironmentalAspectScore`: one of five environmental Aspect categories, frequency, Salience, action counts, aspect action score, and evidence references.
+- `CompanyMetricHistoryPoint`: repository-backed 2016–2025 company-year sequence. Pages never invent substitute history values.
+- `FinancialYearRecord`: annual asset-liability ratio, ROA A, total assets, source field codes, period and quality flags.
+- `ViolationEvent`: multi-year violations, separate occurrence/announcement dates, type, reason, action, authority, penalties, related subject, review status, and quality flags.
+- `PanelYearSummary`: source-aligned yearly counts for source rows, unique company-years, duplicates, sample groups, target-year misses, quality flags, and recovered codes.
+- `EvidenceItem`: report evidence or a compact external-event reference.
+- `ReviewRecord`: model decision, human decision, reason, note, and timestamp.
 
-All records use `metric-contract-v1`. Mock records are parsed by the same runtime schemas as HTTP responses. A zero denominator or unavailable score is represented by `null` plus `unavailableReason`, never by a fabricated zero.
+All records use `metric-contract-v2` and are parsed by the same runtime schemas as HTTP responses. Missing values remain `null` with quality or unavailable reasons; they never become fabricated zeroes.
 
 ## Scenario controls
 
 | Query | Behavior | User impact |
 | --- | --- | --- |
-| `?scenario=empty` | Repository returns no records | Verifies directional empty-state recovery |
+| `?scenario=empty` | Repository returns no company records | Verifies directional empty-state recovery |
 | `?scenario=error` | Repository rejects the request | Verifies cause, impact, and next-step error copy |
 | `?scenario=slow` | Repository delay rises to 900ms | Verifies fixed layout during loading |
 
@@ -39,8 +43,8 @@ All records use `metric-contract-v1`. Mock records are parsed by the same runtim
 
 | Filename contains | Behavior |
 | --- | --- |
-| any normal PDF name | Completes the six-stage synthetic analysis |
+| any normal PDF name | Completes the synthetic analysis |
 | `scan` | Pauses at text extraction and offers demo OCR recovery |
-| `broken` | Fails at text extraction with cause, impact, and next action; demo OCR then succeeds |
+| `broken` | Fails at text extraction; demo OCR can recover |
 
-The Mock Repository stores job creation time and advances status through the same `getAnalysisJob` interface used by the HTTP adapter. This state-based convention is cheaper and more reliable than keeping multiple fixture files. For evaluators, it makes all required paths reproducible without uploading or parsing sensitive documents.
+The Mock Repository advances jobs through the same `getAnalysisJob` interface used by the HTTP adapter.

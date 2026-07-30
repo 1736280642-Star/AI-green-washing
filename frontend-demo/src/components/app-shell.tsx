@@ -102,7 +102,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             const Icon = item.icon;
             const active = activeHref === item.href;
             return (
-              <Link key={item.href} href={item.href} className={active ? "active" : ""} onClick={() => setMobileNav(false)} title={collapsed ? item.label : undefined}>
+              <Link
+                key={item.href}
+                href={item.href}
+                className={active ? "active" : ""}
+                aria-label={item.label}
+                aria-current={active ? "page" : undefined}
+                onClick={() => setMobileNav(false)}
+                title={item.label}
+              >
                 <Icon size={18} aria-hidden="true" />
                 {!collapsed && <span>{item.label}<small>{item.caption}</small></span>}
               </Link>
@@ -110,7 +118,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
         <div className="sidebar-footer">
-          {!collapsed && <div className="data-version"><span>数据版本</span><code>SYN-2026.07</code><small>全量合成数据</small></div>}
+          {!collapsed && <div className="data-version"><span>数据版本</span><code>SYN-2026.08</code><small>全量合成数据</small></div>}
           <button className="sidebar-action" onClick={resetDemo} title="重置演示数据">
             <RotateCcw size={16} />{!collapsed && <span>重置演示数据</span>}
           </button>
@@ -136,13 +144,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <div className="context-bar" aria-label="全局筛选" aria-busy={!filtersReady}>
+        {root !== "dashboard" && <div className="context-bar" aria-label="全局筛选" aria-busy={!filtersReady}>
           <label><span>报告年</span><select disabled={!filtersReady} value={year} onChange={(event) => setFilters({ year: Number(event.target.value) })}><option>2025</option><option>2024</option><option>2023</option></select></label>
           <label><span>行业</span><select disabled={!filtersReady} value={industry} onChange={(event) => setFilters({ industry: event.target.value })}><option>全部行业</option><option>新材料</option><option>综合能源</option><option>交通设备</option><option>消费品</option><option>电子制造</option><option>建筑</option></select></label>
           <label><span>风险</span><select disabled={!filtersReady} value={risk} onChange={(event) => setFilters({ risk: event.target.value })}><option>全部风险</option><option>高风险</option><option>中风险</option><option>低风险</option><option>暂不可评分</option></select></label>
           {(industry !== "全部行业" || risk !== "全部风险" || year !== 2025) && <button className="text-button" disabled={!filtersReady} onClick={() => setFilters({ year: 2025, industry: "全部行业", risk: "全部风险" })}>清除筛选</button>}
           <span className="context-count">合成样本 · 口径截至 {year}</span>
-        </div>
+        </div>}
 
         <main className={`main-content ${root === "dashboard" || pathname.includes("/companies/") ? "evidence-grid-bg" : ""}`}>{children}</main>
         <div className="global-demo-notice">演示数据：企业、事件、报告与指标均为合成内容，不代表任何真实主体。</div>

@@ -13,7 +13,7 @@ export function SubstanceSeverityMatrix({ companies }: { companies: CompanyYearR
   const router = useRouter();
   const { selectedCompanyId, selectCompany } = useDemoStore();
   const [showTable, setShowTable] = useState(false);
-  const chartCompanies = useMemo(() => companies.filter((company) => getMetric(company, "EASS")?.rawValue != null && company.finalIndex != null), [companies]);
+  const chartCompanies = useMemo(() => companies.filter((company) => getMetric(company, "EASS")?.normalizedValue != null && company.finalIndex != null), [companies]);
   const selected = chartCompanies.find((company) => company.companyId === selectedCompanyId);
   const data = useMemo(() => {
     const activeSelectedId = chartCompanies.some((company) => company.companyId === selectedCompanyId) ? selectedCompanyId : null;

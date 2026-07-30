@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { ReviewRecord } from "@/types";
+import type { ReviewRecord, SampleGroup } from "@/types";
 
 type Drawer = "none" | "ai" | "review" | "notifications" | "command";
 
@@ -17,6 +17,7 @@ interface DemoState {
   year: number;
   industry: string;
   risk: string;
+  sampleGroup: "all" | SampleGroup;
   selectedCompanyId: string | null;
   selectedReportYear: number | null;
   selectedEvidenceId: string | null;
@@ -26,7 +27,7 @@ interface DemoState {
   notifications: Notification[];
   drawer: Drawer;
   toast: string | null;
-  setFilters: (filters: Partial<Pick<DemoState, "year" | "industry" | "risk">>) => void;
+  setFilters: (filters: Partial<Pick<DemoState, "year" | "industry" | "risk" | "sampleGroup">>) => void;
   selectCompany: (id: string | null, reportYear?: number | null) => void;
   selectEvidence: (id: string | null) => void;
   toggleCompare: (id: string) => boolean;
@@ -43,6 +44,7 @@ const defaults = {
   year: 2025,
   industry: "全部行业",
   risk: "全部风险",
+  sampleGroup: "all" as const,
   selectedCompanyId: null,
   selectedReportYear: null,
   selectedEvidenceId: null,
@@ -99,6 +101,7 @@ export const useDemoStore = create<DemoState>()(
         year: state.year,
         industry: state.industry,
         risk: state.risk,
+        sampleGroup: state.sampleGroup,
         compareIds: state.compareIds,
         pendingReviews: state.pendingReviews,
         reviews: state.reviews,

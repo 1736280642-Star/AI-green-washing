@@ -7,7 +7,10 @@ describe("demoRepository", () => {
   it("returns stable synthetic company data through the repository contract", async () => {
     const items = await demoRepository.listCompanies();
     expect(items).toHaveLength(30);
-    expect(items[0]).toMatchObject({ companyId: "cy-materials", reportYear: 2025, finalIndex: 0.78, riskBand: "high" });
+    expect(items[0]).toMatchObject({ companyId: "cy-materials", reportYear: 2025, riskBand: "high", reportId: "report-cy-materials-2025" });
+    expect(items[0].finalIndexRaw).not.toBe(items[0].finalIndex);
+    expect(items[0].finalIndex).toBeLessThanOrEqual(1);
+    expect(items[0].versions.schema).toBe("metric-contract-v2");
     expect(items[0].metrics.map((metric) => metric.code)).toEqual(["EASS", "IR", "UPR", "ESGSI", "EAA_ESGSI", "IMBALANCE"]);
   });
 
@@ -20,6 +23,40 @@ describe("demoRepository", () => {
     const items = await demoRepository.listEvidence("cy-materials");
     expect(items.length).toBeGreaterThanOrEqual(3);
     expect(items.every((item) => item.companyId === "cy-materials")).toBe(true);
+  });
+
+  it("returns aspect-level Salience and AS records that reconcile to the company EASS", async () => {
+    const company = await demoRepository.getCompany("cy-materials", "success", 2025);
+    const aspects = await demoRepository.listEnvironmentalAspects("cy-materials", 2025);
+    expect(company).not.toBeNull();
+    expect(aspects).toHaveLength(5);
+    expect(aspects.reduce((sum, item) => sum + item.salience, 0)).toBeCloseTo(1, 5);
+    const weightedEass = aspects.reduce((sum, item) => sum + item.salience * (item.actionScore ?? 0), 0);
+    expect(weightedEass).toBeCloseTo(company!.metrics.find((item) => item.code === "EASS")!.rawValue!, 4);
+  });
+
+  it("returns repository-backed history instead of page-generated substitute values", async () => {
+    const company = await demoRepository.getCompany("cy-materials", "success", 2025);
+    const history = await demoRepository.getCompanyHistory("cy-materials", { fromYear: 2016, toYear: 2025, metrics: ["EASS", "EAA_ESGSI"] });
+    expect(history).toHaveLength(10);
+    expect(Object.keys(history[0].metrics).sort()).toEqual(["EAA_ESGSI", "EASS"]);
+    expect(history.at(-1)).toMatchObject({ reportYear: 2025, finalIndex: company!.finalIndex });
+  });
+
+  it("exposes dedicated financial and violation-event resources", async () => {
+    const financial = await demoRepository.getFinancialYear("cy-materials", 2025);
+    const events = await demoRepository.listViolationEvents("cy-materials", { fromYear: 2022, toYear: 2025 });
+    expect(financial).toMatchObject({ sourceFields: { assetLiabilityRatio: "F011201A", roaA: "F050201B", totalAssets: "A001000000" } });
+    expect(events.length).toBeGreaterThan(0);
+    expect(events[0]).toMatchObject({ companyId: "cy-materials", reviewStatus: expect.any(String) });
+    expect(events.some((event) => event.violationYears.length > 1)).toBe(true);
+  });
+
+  it("exposes source-aligned yearly panel audit summaries", async () => {
+    const summaries = await demoRepository.listPanelYearSummaries({ fromYear: 2022, toYear: 2025 });
+    expect(summaries).toHaveLength(4);
+    expect(summaries[0]).toMatchObject({ year: 2022, uniqueCompanyYears: 30, sourceFile: expect.any(String) });
+    expect(summaries.every((item) => item.sourceRows >= item.uniqueCompanyYears)).toBe(true);
   });
 
   it("scopes company and evidence lookups to the requested report year", async () => {
@@ -48,6 +85,24 @@ describe("demoRepository", () => {
     expect(insights.sourceFreshness.some((source) => source.status === "stale")).toBe(true);
     const evidenceIds = new Map((await Promise.all((await demoRepository.listCompanies()).map(async (company) => [company.companyId, new Set((await demoRepository.listEvidence(company.companyId)).map((item) => item.id))] as const))));
     expect(insights.reviewTasks.every((task) => evidenceIds.get(task.companyId)?.has(task.evidenceId))).toBe(true);
+  });
+
+  it("returns a repository-aggregated Dashboard Command Center view model", async () => {
+    const dashboard = await demoRepository.getDashboardCommandCenter("success", { year: 2025 });
+    expect(dashboard.scope).toMatchObject({ reportYear: 2025, dataVersion: "SYN-2026.08" });
+    expect(dashboard.kpis.sampleCount).toBe(30);
+    expect(dashboard.metricTriad.map((item) => item.code)).toEqual(["RHETORIC_CONTENT", "ACTION_SUBSTANCE", "AMBIGUITY_VERIFICATION"]);
+    expect(dashboard.riskNodes).toHaveLength(30);
+    expect(dashboard.annualTrend).toHaveLength(10);
+    expect(dashboard.industryRisk.length).toBeGreaterThan(0);
+    expect(dashboard.quality).toHaveLength(10);
+  });
+
+  it("keeps Dashboard Command Center filters inside the Repository boundary", async () => {
+    const dashboard = await demoRepository.getDashboardCommandCenter("success", { year: 2025, industry: "新材料", sampleGroup: "main_n_ge_20" });
+    expect(dashboard.riskNodes.every((node) => node.industry === "新材料")).toBe(true);
+    expect(dashboard.kpis.sampleCount).toBe(dashboard.riskNodes.length);
+    await expect(demoRepository.getDashboardCommandCenter("empty", { year: 2025 })).resolves.toMatchObject({ kpis: { sampleCount: 0 }, riskNodes: [] });
   });
 
   it("advances analysis jobs through the repository and returns recoverable extraction errors", async () => {

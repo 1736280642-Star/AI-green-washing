@@ -1,8 +1,21 @@
-import { companies, evidence } from "@/mocks/fixtures/companies";
+import { companies, companyHistory, environmentalAspects, evidence, financialRecords, panelYearSummaries, violationEvents } from "@/mocks/fixtures/companies";
 import { dashboardInsights } from "@/mocks/fixtures/dashboard";
-import { analysisJobSchema, companyYearListSchema, dashboardInsightsSchema, evidenceItemSchema, reviewRecordSchema } from "@/contracts/analysis";
+import {
+  analysisJobSchema,
+  companyMetricHistoryPointSchema,
+  companyYearListSchema,
+  dashboardCommandCenterSchema,
+  dashboardInsightsSchema,
+  environmentalAspectScoreSchema,
+  evidenceItemSchema,
+  financialYearRecordSchema,
+  panelYearSummarySchema,
+  reviewRecordSchema,
+  violationEventSchema,
+} from "@/contracts/analysis";
+import { buildDashboardCommandCenter } from "@/repositories/dashboard-command-center";
 import type { AnalysisRepository, CompanyYearQuery, DemoScenario } from "@/repositories/analysis-repository";
-import type { AnalysisJob, ReviewRecord } from "@/types";
+import type { AnalysisJob, MetricCode, ReviewRecord } from "@/types";
 
 export type { DemoScenario } from "@/repositories/analysis-repository";
 
@@ -20,6 +33,11 @@ interface StoredAnalysisJob {
 const jobs = new Map<string, StoredAnalysisJob>();
 const validatedCompanies = companyYearListSchema.parse(companies);
 const validatedEvidence = evidenceItemSchema.array().parse(evidence);
+const validatedAspects = environmentalAspectScoreSchema.array().parse(environmentalAspects);
+const validatedHistory = companyMetricHistoryPointSchema.array().parse(companyHistory);
+const validatedFinancials = financialYearRecordSchema.array().parse(financialRecords);
+const validatedPanelYearSummaries = panelYearSummarySchema.array().parse(panelYearSummaries);
+const validatedViolationEvents = violationEventSchema.array().parse(violationEvents);
 const validatedDashboardInsights = dashboardInsightsSchema.parse(dashboardInsights);
 
 function advanceJob(stored: StoredAnalysisJob): AnalysisJob {
@@ -55,7 +73,8 @@ export const demoRepository: AnalysisRepository = {
     return structuredClone(validatedCompanies.filter((company) =>
       (!query.year || company.reportYear === query.year)
       && (!query.industry || query.industry === "全部行业" || company.industry === query.industry)
-      && (!query.riskBand || company.riskBand === query.riskBand),
+      && (!query.riskBand || company.riskBand === query.riskBand)
+      && (!query.sampleGroup || company.panelMetadata.sampleGroup === query.sampleGroup),
     ));
   },
   async getCompany(id: string, scenario: DemoScenario = "success", reportYear?: number) {
@@ -65,6 +84,43 @@ export const demoRepository: AnalysisRepository = {
   async listEvidence(companyId: string, scenario: DemoScenario = "success", reportYear?: number) {
     await wait(scenario);
     return scenario === "empty" ? [] : structuredClone(validatedEvidence.filter((item) => item.companyId === companyId && (!reportYear || item.reportYear === reportYear)));
+  },
+  async listEnvironmentalAspects(companyId: string, reportYear: number) {
+    return structuredClone(validatedAspects.filter((item) => item.companyId === companyId && item.reportYear === reportYear));
+  },
+  async getCompanyHistory(companyId: string, options: { fromYear?: number; toYear?: number; metrics?: MetricCode[] } = {}) {
+    return structuredClone(validatedHistory
+      .filter((item) => item.companyId === companyId && (!options.fromYear || item.reportYear >= options.fromYear) && (!options.toYear || item.reportYear <= options.toYear))
+      .map((item) => options.metrics?.length
+        ? { ...item, metrics: Object.fromEntries(Object.entries(item.metrics).filter(([code]) => options.metrics!.includes(code as MetricCode))) }
+        : item));
+  },
+  async getFinancialYear(companyId: string, reportYear: number) {
+    return structuredClone(validatedFinancials.find((item) => item.companyId === companyId && item.reportYear === reportYear) ?? null);
+  },
+  async listViolationEvents(companyId: string, options: { reportYear?: number; fromYear?: number; toYear?: number } = {}) {
+    return structuredClone(validatedViolationEvents.filter((item) => {
+      if (item.companyId !== companyId) return false;
+      if (options.reportYear != null && !item.violationYears.includes(options.reportYear)) return false;
+      if (options.fromYear != null && item.violationYears.every((year) => year < options.fromYear!)) return false;
+      if (options.toYear != null && item.violationYears.every((year) => year > options.toYear!)) return false;
+      return true;
+    }));
+  },
+  async listPanelYearSummaries(options: { fromYear?: number; toYear?: number } = {}) {
+    return structuredClone(validatedPanelYearSummaries.filter((item) =>
+      (!options.fromYear || item.year >= options.fromYear) && (!options.toYear || item.year <= options.toYear),
+    ));
+  },
+  async getDashboardCommandCenter(scenario: DemoScenario = "success", query: CompanyYearQuery = {}) {
+    await wait(scenario);
+    const payload = buildDashboardCommandCenter(
+      scenario === "empty" ? [] : validatedCompanies,
+      scenario === "empty" ? [] : validatedHistory,
+      scenario === "empty" ? [] : validatedPanelYearSummaries,
+      query,
+    );
+    return structuredClone(dashboardCommandCenterSchema.parse(payload));
   },
   async getDashboardInsights(scenario: DemoScenario = "success") {
     await wait(scenario);
