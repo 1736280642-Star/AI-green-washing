@@ -21,6 +21,18 @@ async function expectCanvasPainted(canvas: ReturnType<Page["locator"]>) {
   expect(paintedPixels).toBeGreaterThan(20);
 }
 
+test("GreenLens Copilot uses one third of a wide desktop viewport", async ({ page }) => {
+  await page.setViewportSize({ width: 1920, height: 900 });
+  await page.goto("/dashboard");
+  await page.keyboard.press("Control+J");
+
+  const drawer = page.getByRole("dialog", { name: "绿镜 GreenLens Copilot" });
+  await expect(drawer).toBeVisible();
+  const drawerWidth = await drawer.evaluate((element) => element.getBoundingClientRect().width);
+
+  expect(drawerWidth).toBeCloseTo(640, 0);
+});
+
 test("workflow A: dashboard to cited evidence and review", async ({ page }) => {
   const errors = monitorConsole(page);
   await page.goto("/dashboard");
@@ -48,7 +60,7 @@ test("dashboard risk insights drive the Top 5 review flow", async ({ page }) => 
   const riskFilter = page.locator(".command-center-filterbar label").filter({ hasText: "风险" }).locator("select");
   await riskFilter.selectOption("高风险");
   await expect(riskFilter).toHaveValue("高风险");
-  await expect(page.locator(".cc-kpi-rail .cc-kpi>small, .cc-triad-copy small, .cc-watch-company small")).toHaveCount(0);
+  await expect(page.locator(".cc-kpi-rail .cc-kpi>small, .cc-triad-description, .cc-watch-company small")).toHaveCount(0);
   await riskFilter.selectOption("全部风险");
   await expect(page.getByRole("heading", { name: "十年风险趋势" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "行业风险热力" })).toBeVisible();
@@ -75,6 +87,19 @@ test("dashboard exposes KPI definitions and full module views", async ({ page })
 
   const expandButtons = page.locator(".command-center-page .cc-expand-button");
   await expect(expandButtons).toHaveCount(6);
+  const triadPanel = page.locator(".cc-triad-panel");
+  await expect(triadPanel.getByText("关注率")).toHaveCount(3);
+  await expect(triadPanel.getByText("有效样本")).toHaveCount(3);
+  const triadExpand = page.getByRole("button", { name: "展开三方面构造指标" });
+  await triadExpand.click();
+  const triadDialog = page.getByRole("dialog", { name: "三方面构造指标完整视图" });
+  await expect(triadDialog).toBeVisible();
+  await expect(triadDialog.getByText("中间 50% 区间")).toHaveCount(3);
+  await expect(triadDialog.getByText("趋势覆盖")).toHaveCount(3);
+  await page.keyboard.press("Escape");
+  await expect(triadDialog).toHaveCount(0);
+  await expect(triadExpand).toBeFocused();
+
   const trendExpand = page.getByRole("button", { name: "展开十年风险趋势" });
   await trendExpand.click();
   const trendDialog = page.getByRole("dialog", { name: "十年风险趋势完整视图" });
@@ -271,6 +296,9 @@ for (const viewport of [
         kpiToPrimaryGap: document.querySelector(".cc-primary-grid")!.getBoundingClientRect().top - document.querySelector(".cc-kpi-rail")!.getBoundingClientRect().bottom,
         primaryToBottomGap: document.querySelector(".cc-bottom-grid")!.getBoundingClientRect().top - document.querySelector(".cc-primary-grid")!.getBoundingClientRect().bottom,
         primaryHeight: document.querySelector(".cc-primary-grid")!.getBoundingClientRect().height,
+        bottomHeight: document.querySelector(".cc-bottom-grid")!.getBoundingClientRect().height,
+        primaryPanelWidths: [...document.querySelectorAll<HTMLElement>(".cc-primary-grid > .cc-panel")].map((element) => element.getBoundingClientRect().width),
+        triadCardsClipped: [...document.querySelectorAll<HTMLElement>(".cc-triad-card")].some((element) => element.scrollHeight - element.clientHeight > 1),
         clippedControls,
       };
     });
@@ -280,7 +308,11 @@ for (const viewport of [
     expect(layout.headerCenterSpread).toBeLessThanOrEqual(2);
     expect(layout.kpiToPrimaryGap).toBeLessThanOrEqual(12);
     expect(layout.primaryToBottomGap).toBeLessThanOrEqual(12);
-    expect(layout.primaryHeight).toBeLessThanOrEqual(520);
+    expect(layout.primaryHeight).toBeGreaterThanOrEqual(319);
+    expect(layout.primaryHeight).toBeLessThanOrEqual(430);
+    expect(layout.bottomHeight).toBeGreaterThanOrEqual(239);
+    expect(layout.primaryPanelWidths[1] / layout.primaryPanelWidths.reduce((total, width) => total + width, 0)).toBeLessThanOrEqual(.46);
+    expect(layout.triadCardsClipped).toBe(false);
     expect(layout.clippedControls).toEqual([]);
     for (const box of layout.boxes) {
       expect(box.left, `${box.selector} exceeds the left edge`).toBeGreaterThanOrEqual(-1);

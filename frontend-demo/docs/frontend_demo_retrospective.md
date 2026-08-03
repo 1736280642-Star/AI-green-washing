@@ -75,3 +75,11 @@ The repeated acceptance workflow is automated in `tests/e2e/workflows.spec.ts`. 
 - A stale `.next/dev` chunk can make a running page disagree with the source tree. The reliable diagnosis is to compare visible copy with source, identify the exact listener process, clear only the active target's generated development cache, and verify the restarted server's DOM and geometry.
 - Geometry-changing entrance animation made sequential browser measurements observe different frames. The command bar now fades without translation; staged panel motion remains short and never delays access to the controls.
 - The release matrix now covers 1280×800, 1440×900, 1920×1080, and 2048×1227. It checks single-row alignment, no page overflow, no clipped top controls, no inter-module spacer, a 520px primary-row cap, painted Canvas output, and zero serious accessibility violations.
+
+## Dashboard analytical-density correction · 2026-08-03
+
+- A spatial visualization can remain the signature without owning half the screen. The primary row now stays between 320px and 430px, the risk field is capped at 46% of the three-column content width, and the bottom analytical row receives at least 240px.
+- Large construct cards were visually full but informationally empty. Compact cards now combine median, attention rate, year-over-year change, valid sample count, and a trend trace so each occupied pixel supports a research judgment.
+- Expanding a construct no longer magnifies the same sparse card. It adds the business definition, quartile range, trend coverage, and every annual median from 2016 through 2025; the trend plot expands to use the remaining vertical space.
+- The added metadata made the former three-across tablet layout unreadable. Tablet compatibility now stacks the construct cards vertically, accepting more scrolling in exchange for complete labels and values; desktop remains the release target.
+- Layout tests now block primary rows above 430px, bottom rows below 240px, risk-field width shares above 46%, and compact construct-card clipping.

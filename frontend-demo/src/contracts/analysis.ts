@@ -281,6 +281,8 @@ export const dashboardCommandCenterSchema = z.object({
     code: z.enum(["RHETORIC_CONTENT", "ACTION_SUBSTANCE", "AMBIGUITY_VERIFICATION"]),
     label: z.string(), description: z.string(), medianValue: z.number().min(0).max(1).nullable(),
     attentionRate: z.number().min(0).max(1).nullable(),
+    sampleCount: z.number().int().nonnegative(), q1: z.number().min(0).max(1).nullable(),
+    q3: z.number().min(0).max(1).nullable(),
     history: z.array(z.object({ year: z.number().int(), value: z.number().min(0).max(1).nullable() })),
   })),
   riskNodes: z.array(dashboardRiskNodeSchema),

@@ -359,6 +359,9 @@ export interface DashboardMetricTriad {
   description: string;
   medianValue: number | null;
   attentionRate: number | null;
+  sampleCount: number;
+  q1: number | null;
+  q3: number | null;
   history: Array<{ year: number; value: number | null }>;
 }
 

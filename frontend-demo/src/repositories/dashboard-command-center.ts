@@ -94,13 +94,17 @@ export function buildDashboardCommandCenter(
   ];
 
   const metricTriad = triadDefinitions.map((definition) => {
+    const values = companies.map(definition.currentValue).filter((value): value is number => value != null);
     const risks = companies.map(definition.currentRisk).filter((value): value is number => value != null);
     return {
       code: definition.code,
       label: definition.label,
       description: definition.description,
-      medianValue: median(companies.map(definition.currentValue)),
+      medianValue: quantile(values, .5),
       attentionRate: rate(risks.length, risks.filter((value) => value >= .5).length),
+      sampleCount: values.length,
+      q1: quantile(values, .25),
+      q3: quantile(values, .75),
       history: years.map((year) => ({
         year,
         value: median(histories.filter((point) => point.reportYear === year).map(definition.historyValue)),

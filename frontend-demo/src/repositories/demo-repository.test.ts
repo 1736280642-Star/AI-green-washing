@@ -92,6 +92,8 @@ describe("demoRepository", () => {
     expect(dashboard.scope).toMatchObject({ reportYear: 2025, dataVersion: "SYN-2026.08" });
     expect(dashboard.kpis.sampleCount).toBe(30);
     expect(dashboard.metricTriad.map((item) => item.code)).toEqual(["RHETORIC_CONTENT", "ACTION_SUBSTANCE", "AMBIGUITY_VERIFICATION"]);
+    expect(dashboard.metricTriad.every((item) => item.sampleCount === 30)).toBe(true);
+    expect(dashboard.metricTriad.every((item) => item.q1 != null && item.medianValue != null && item.q3 != null && item.q1 <= item.medianValue && item.medianValue <= item.q3)).toBe(true);
     expect(dashboard.riskNodes).toHaveLength(30);
     expect(dashboard.annualTrend).toHaveLength(10);
     expect(dashboard.industryRisk.length).toBeGreaterThan(0);
